@@ -248,7 +248,8 @@ const globalGamepadButtonSizeRound = Object.freeze({
 const drawGamepadButtonRound = (x, y, name, color = "black", pressed = false) => {
     if (debug) {
         // Draw object boundaries
-        ctx.strokeStyle = "2px black"
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 2;
         ctx.beginPath()
         ctx.arc(x, y, 5, 0, Math.PI * 2)
         ctx.stroke()
@@ -284,7 +285,8 @@ const globalGamepadButtonSizeGroupXboxABXY = Object.freeze({
 const drawGamepadButtonGroupXboxABXY = (x, y, buttonA, buttonB, buttonX, buttonY) => {
     if (debug) {
         // Draw object boundaries
-        ctx.strokeStyle = "2px black"
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 2;
         ctx.beginPath()
         ctx.arc(x, y, 5, 0, Math.PI * 2)
         ctx.stroke()
@@ -320,7 +322,8 @@ const globalGamepadButtonSizeAxis = Object.freeze({
 const drawGamepadButtonAxis = (x, y, axisX, axisY, pressed = false) => {
     if (debug) {
         // Draw object boundaries
-        ctx.strokeStyle = "2px black"
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 2;
         ctx.beginPath()
         ctx.arc(x, y, 5, 0, Math.PI * 2)
         ctx.stroke()
@@ -369,7 +372,8 @@ const globalGamepadButtonSizePlus = Object.freeze({
 const drawGamepadButtonPlus = (x, y, pressDirectionVertical = undefined, pressDirectionHorizontal = undefined) => {
     if (debug) {
         // Draw object boundaries
-        ctx.strokeStyle = "2px black"
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 2;
         ctx.beginPath()
         ctx.arc(x, y, 5, 0, Math.PI * 2)
         ctx.stroke()
