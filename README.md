@@ -27,3 +27,5 @@ Open the [`index.html`](index.html) file with your browser.
   - Add missing buttons
 - Create button for debug view
 - Allow a custom zoom scale (with a minimum width/height and where the maximum is the current canvas maximum width/height)
+- Allow the user to select possible supported visualization profiles
+  - Later add options like colors for the controller or stroke on/off
