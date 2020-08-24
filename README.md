@@ -19,3 +19,10 @@ Open the [`index.html`](index.html) file with your browser.
 **If you use modern browsers you need to create a static web server in the repository**:
 
 - Python 3: `python3 -m http.server 8000 --bind 127.0.0.1` (then visit `http://127.0.0.1:8000/` in your browser)
+
+## TODO
+
+- Add missing buttons
+- Create button for debug view
+- Add visualization profiles (`Firefox-Xbox-One`, `Chrome-XBox-One`) to allow not recognized controllers to still be rendered and make a visualization work for other browsers
+  - The profiles need to have checks like the length of axis and button arrays to not crash the page
