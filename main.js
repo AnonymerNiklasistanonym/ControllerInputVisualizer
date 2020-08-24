@@ -230,6 +230,40 @@ const update = timeDelta => {
     return true
 }
 
+class GamepadVisualizationProfile {
+    /**
+     * The name of the visualization profile
+     * @type {string}
+     */
+    static profileName = undefined
+    /**
+     * Check if a gamepad is supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadIsSupported(gamepad) {
+        throw Error("Not implemented")
+    }
+    /**
+     * Check if a gamepad can be supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadCanBeSupported(gamepad) {
+        throw Error("Not implemented")
+    }
+    /**
+     * Draw a gamepad
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number} x
+     * @param {number} y
+     * @param {Gamepad} gamepad
+     */
+    static draw(ctx, x, y, gamepad) {
+        throw Error("Not implemented")
+    }
+}
+
 const globalGamepadButtonRadiusRound = 10
 
 const globalGamepadButtonSizeRound = Object.freeze({
@@ -398,6 +432,152 @@ const drawGamepadButtonPlus = (x, y, pressDirectionVertical = undefined, pressDi
     ctx.fill()
 }
 
+class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
+    /**
+     * The name of the visualization profile
+     * @type {string}
+     */
+    static profileName = undefined
+    /**
+     * Check if a gamepad is supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadIsSupported(gamepad) {
+        if (gamepad.id === "Microsoft Controller (STANDARD GAMEPAD Vendor: 045e Product: 02ea)"
+         || gamepad.id === "©Microsoft Corporation Controller (STANDARD GAMEPAD Vendor: 045e Product: 028e)") {
+             return this.gamepadCanBeSupported(gamepad)
+         }
+         return false
+    }
+    /**
+     * Check if a gamepad can be supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadCanBeSupported(gamepad) {
+        if (gamepad.buttons.length >= 17 && gamepad.axes.length >= 4) {
+            return true
+        }
+        return false
+    }
+    /**
+     * Draw a gamepad
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number} x
+     * @param {number} y
+     * @param {Gamepad} gamepad
+     */
+    static draw(ctx, x, y, gamepad) {
+        drawGamepadButtonGroupXboxABXY(x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 300,
+            y + globalGamepadButtonSizeGroupXboxABXY.height / 2,
+            gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3])
+
+        let startIndexButtonAxes = 10
+        let startIndexAxisLeft = 0
+        let startIndexAxisRight = 2
+
+        drawGamepadButtonAxis(x + globalGamepadButtonSizeAxis.width / 2, y + globalGamepadButtonSizeAxis.height / 2,
+            gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0)
+
+        drawGamepadButtonAxis(x + globalGamepadButtonSizeAxis.width / 2 + 250, y + globalGamepadButtonSizeAxis.height / 2 + 125,
+            gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0)
+
+        /** @type {"LEFT" | "RIGHT"} */
+        let pressDirectionHorizontal
+        /** @type {"UP" | "DOWN"} */
+        let pressDirectionVertical
+
+        let startIndexButtonPlus = 12
+        if (gamepad.buttons[startIndexButtonPlus].value > 0) {
+            pressDirectionVertical = "UP"
+        } else if (gamepad.buttons[startIndexButtonPlus + 1].value > 0) {
+            pressDirectionVertical = "DOWN"
+        }
+        if (gamepad.buttons[startIndexButtonPlus + 2].value > 0) {
+            pressDirectionHorizontal = "LEFT"
+        } else if (gamepad.buttons[startIndexButtonPlus + 3].value > 0) {
+            pressDirectionHorizontal = "RIGHT"
+        }
+
+        drawGamepadButtonPlus(x + globalGamepadButtonSizePlus.width / 2, y + globalGamepadButtonSizePlus.height / 2 + 125,
+            pressDirectionVertical, pressDirectionHorizontal)
+    }
+}
+
+class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
+    /**
+     * The name of the visualization profile
+     * @type {string}
+     */
+    static profileName = undefined
+    /**
+     * Check if a gamepad is supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadIsSupported(gamepad) {
+        if (gamepad.id === "045e-02ea-Microsoft X-Box One S pad"
+         || gamepad.id === "045e-028e-Microsoft X-Box 360 pad") {
+            return this.gamepadCanBeSupported(gamepad)
+        }
+         return false
+    }
+    /**
+     * Check if a gamepad can be supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadCanBeSupported(gamepad) {
+        if (gamepad.buttons.length >= 11 && gamepad.axes.length >= 8) {
+            return true
+        }
+        return false
+    }
+    /**
+     * Draw a gamepad
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number} x
+     * @param {number} y
+     * @param {Gamepad} gamepad
+     */
+    static draw(ctx, x, y, gamepad) {
+        drawGamepadButtonGroupXboxABXY(x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 300,
+            y + globalGamepadButtonSizeGroupXboxABXY.height / 2,
+            gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3])
+
+        let startIndexButtonAxes = 9
+        let startIndexAxisLeft = 0
+        let startIndexAxisRight = 3
+
+        drawGamepadButtonAxis(x + globalGamepadButtonSizeAxis.width / 2, y + globalGamepadButtonSizeAxis.height / 2,
+            gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0)
+
+        drawGamepadButtonAxis(x + globalGamepadButtonSizeAxis.width / 2 + 250, y + globalGamepadButtonSizeAxis.height / 2 + 125,
+            gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0)
+
+        /** @type {"LEFT" | "RIGHT"} */
+        let pressDirectionHorizontal
+        /** @type {"UP" | "DOWN"} */
+        let pressDirectionVertical
+
+        let startIndexAxisPlus = 6
+        if (gamepad.axes[startIndexAxisPlus] > 0) {
+            pressDirectionHorizontal = "RIGHT"
+        } else if (gamepad.axes[startIndexAxisPlus] < 0) {
+            pressDirectionHorizontal = "LEFT"
+        }
+        if (gamepad.axes[startIndexAxisPlus + 1] > 0) {
+            pressDirectionVertical = "DOWN"
+        } else if (gamepad.axes[startIndexAxisPlus + 1] < 0) {
+            pressDirectionVertical = "UP"
+        }
+
+        drawGamepadButtonPlus(x + globalGamepadButtonSizePlus.width / 2, y + globalGamepadButtonSizePlus.height / 2 + 125,
+            pressDirectionVertical, pressDirectionHorizontal)
+    }
+}
+
 /**
  * Draw a frame
  * @param {Gamepad} gamepad Gamepad that should be drawn
@@ -423,58 +603,20 @@ const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
     const startY = 150 + (25 * (debug ? gamepad.buttons.length + gamepad.axes.length : 0))
     const startX = 50 + (500 * gamepadIndex)
 
-    drawGamepadButtonGroupXboxABXY(startX + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 300,
-        startY + globalGamepadButtonSizeGroupXboxABXY.height / 2,
-        gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3])
-
-    let startIndexButtonAxes = 10
-    let startIndexAxisLeft = 0
-    let startIndexAxisRight = 2
-    if (navigator.userAgent.indexOf("Firefox") > -1) {
-        // Firefox has some buttons registered as axes
-        startIndexButtonAxes = 9
-        startIndexAxisRight = 3
-    }
-
-    drawGamepadButtonAxis(startX + globalGamepadButtonSizeAxis.width / 2, startY + globalGamepadButtonSizeAxis.height / 2,
-        gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0)
-
-    drawGamepadButtonAxis(startX + globalGamepadButtonSizeAxis.width / 2 + 250, startY + globalGamepadButtonSizeAxis.height / 2 + 125,
-        gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0)
-
-    /** @type {"LEFT" | "RIGHT"} */
-    let pressDirectionHorizontal
-    /** @type {"UP" | "DOWN"} */
-    let pressDirectionVertical
-
-    if (navigator.userAgent.indexOf("Firefox") > -1) {
-        // Firefox has the plus buttons registered as axes
-        let startIndexAxisPlus = 6
-        if (gamepad.axes[startIndexAxisPlus] > 0) {
-            pressDirectionHorizontal = "RIGHT"
-        } else if (gamepad.axes[startIndexAxisPlus] < 0) {
-            pressDirectionHorizontal = "LEFT"
-        }
-        if (gamepad.axes[startIndexAxisPlus + 1] > 0) {
-            pressDirectionVertical = "DOWN"
-        } else if (gamepad.axes[startIndexAxisPlus + 1] < 0) {
-            pressDirectionVertical = "UP"
-        }
+    if (XBoxOne360ControllerChromium.gamepadIsSupported(gamepad)) {
+        XBoxOne360ControllerChromium.draw(ctx, startX, startY, gamepad)
+    } else if (XBoxOne360ControllerFirefox.gamepadIsSupported(gamepad)) {
+        XBoxOne360ControllerFirefox.draw(ctx, startX, startY, gamepad)
     } else {
-        let startIndexButtonPlus = 12
-        if (gamepad.buttons[startIndexButtonPlus].value > 0) {
-            pressDirectionVertical = "UP"
-        } else if (gamepad.buttons[startIndexButtonPlus + 1].value > 0) {
-            pressDirectionVertical = "DOWN"
-        }
-        if (gamepad.buttons[startIndexButtonPlus + 2].value > 0) {
-            pressDirectionHorizontal = "LEFT"
-        } else if (gamepad.buttons[startIndexButtonPlus + 3].value > 0) {
-            pressDirectionHorizontal = "RIGHT"
+        if (XBoxOne360ControllerChromium.gamepadCanBeSupported(gamepad)) {
+        XBoxOne360ControllerChromium.draw(ctx, startX, startY, gamepad)
+        } else if (XBoxOne360ControllerFirefox.gamepadCanBeSupported(gamepad)) {
+            XBoxOne360ControllerFirefox.draw(ctx, startX, startY, gamepad)
+        } else {
+            throw Error("No gamepad profile was found that could render the currently connected controller")
         }
     }
-    drawGamepadButtonPlus(startX + globalGamepadButtonSizePlus.width / 2, startY + globalGamepadButtonSizePlus.height / 2 + 125,
-        pressDirectionVertical, pressDirectionHorizontal)
+
 }
 
 /**
