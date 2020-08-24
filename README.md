@@ -25,7 +25,5 @@ Open the [`index.html`](index.html) file with your browser.
 - Make default value visualization more beautiful
 - Implement a visualization for the XBox controller
   - Add missing buttons
-  - Add missing case
 - Create button for debug view
-- Add visualization profiles (`Firefox-XBox-One`, `Chrome-XBox-One`) to allow not recognized controllers to still be rendered and make a visualization work for other browsers
-  - The profiles need to have checks like the length of axis and button arrays to not crash the page
+- Allow a custom zoom scale (with a minimum width/height and where the maximum is the current canvas maximum width/height)
