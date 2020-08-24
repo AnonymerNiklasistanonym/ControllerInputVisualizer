@@ -98,6 +98,15 @@ function addGamepad(gamepad) {
     /* << Temporary HTML debugging */
 
     globalGamepads.set(gamepad.index, gamepad)
+
+    if (gamepad.vibrationActuator) {
+        gamepad.vibrationActuator.playEffect("dual-rumble", {
+            startDelay: 0,
+            duration: 300,
+            weakMagnitude: 0.5,
+            strongMagnitude: 1.0
+        }).catch(console.error)
+    }
     globalAnimationFrameRequest = window.requestAnimationFrame(loop)
 }
 
@@ -414,25 +423,51 @@ const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
         startY + globalGamepadButtonSizeGroupXboxABXY.height / 2,
         gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3])
 
+    let startIndexButtonAxes = 10
+    let startIndexAxisLeft = 0
+    let startIndexAxisRight = 2
+    if (navigator.userAgent.indexOf("Firefox") > -1) {
+        // Firefox has some buttons registered as axes
+        startIndexButtonAxes = 9
+        startIndexAxisRight = 3
+    }
+
     drawGamepadButtonAxis(startX + globalGamepadButtonSizeAxis.width / 2, startY + globalGamepadButtonSizeAxis.height / 2,
-        gamepad.axes[0], gamepad.axes[1], gamepad.buttons[10].value > 0)
+        gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0)
 
     drawGamepadButtonAxis(startX + globalGamepadButtonSizeAxis.width / 2 + 250, startY + globalGamepadButtonSizeAxis.height / 2 + 125,
-        gamepad.axes[2], gamepad.axes[3], gamepad.buttons[11].value > 0)
+        gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0)
 
     /** @type {"LEFT" | "RIGHT"} */
     let pressDirectionHorizontal
     /** @type {"UP" | "DOWN"} */
     let pressDirectionVertical
-    if (gamepad.buttons[12].value > 0) {
-        pressDirectionVertical = "UP"
-    } else if (gamepad.buttons[13].value > 0) {
-        pressDirectionVertical = "DOWN"
-    }
-    if (gamepad.buttons[14].value > 0) {
-        pressDirectionHorizontal = "LEFT"
-    } else if (gamepad.buttons[15].value > 0) {
-        pressDirectionHorizontal = "RIGHT"
+
+    if (navigator.userAgent.indexOf("Firefox") > -1) {
+        // Firefox has the plus buttons registered as axes
+        let startIndexAxisPlus = 6
+        if (gamepad.axes[startIndexAxisPlus] > 0) {
+            pressDirectionHorizontal = "RIGHT"
+        } else if (gamepad.axes[startIndexAxisPlus] < 0) {
+            pressDirectionHorizontal = "LEFT"
+        }
+        if (gamepad.axes[startIndexAxisPlus + 1] > 0) {
+            pressDirectionVertical = "DOWN"
+        } else if (gamepad.axes[startIndexAxisPlus + 1] < 0) {
+            pressDirectionVertical = "UP"
+        }
+    } else {
+        let startIndexButtonPlus = 12
+        if (gamepad.buttons[startIndexButtonPlus].value > 0) {
+            pressDirectionVertical = "UP"
+        } else if (gamepad.buttons[startIndexButtonPlus + 1].value > 0) {
+            pressDirectionVertical = "DOWN"
+        }
+        if (gamepad.buttons[startIndexButtonPlus + 2].value > 0) {
+            pressDirectionHorizontal = "LEFT"
+        } else if (gamepad.buttons[startIndexButtonPlus + 3].value > 0) {
+            pressDirectionHorizontal = "RIGHT"
+        }
     }
     drawGamepadButtonPlus(startX + globalGamepadButtonSizePlus.width / 2, startY + globalGamepadButtonSizePlus.height / 2 + 125,
         pressDirectionVertical, pressDirectionHorizontal)
