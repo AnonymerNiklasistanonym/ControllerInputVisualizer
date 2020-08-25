@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest",
+  "name": "Controller Input Visualizer",
+  "description": "Visualizes the input of connected controllers",
+  "icons": [
+    {
+      "src": "favicons/favicon.svg",
+      "sizes": "any"
+    },
+    {
+      "src": "favicons/favicon_256.png",
+      "type": "image/png",
+      "sizes": "256x256"
+    },
+    {
+      "src": "favicons/favicon_192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "background_color": "#F1F1F1",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#000000"
+}
