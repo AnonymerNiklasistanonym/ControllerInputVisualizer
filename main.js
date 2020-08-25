@@ -378,10 +378,17 @@ const createOptionsInput = () => {
     const htmlInputBackgroundColor = document.createElement("input")
     htmlInputBackgroundColor.id = "htmlInputBackgroundColor"
     htmlInputBackgroundColor.type = "color"
+    const defaultValueBackgroundColor = localStorage.getItem('backgroundColor')
+    if (defaultValueBackgroundColor) {
+        globalOptionBackgroundColor = defaultValueBackgroundColor
+    } else {
+        localStorage.setItem('backgroundColor', globalOptionBackgroundColor);
+    }
     htmlInputBackgroundColor.value = globalOptionBackgroundColor
     htmlInputBackgroundColor.addEventListener("change", () => {
         console.log(`Update htmlInputBackgroundColor to: '${htmlInputBackgroundColor.value}'`)
         globalOptionBackgroundColor = htmlInputBackgroundColor.value
+        localStorage.setItem('backgroundColor', globalOptionBackgroundColor);
         // Force redraw of canvas
         globalForceRedraw = true
     })
@@ -393,10 +400,17 @@ const createOptionsInput = () => {
     const htmlInputToggleMask = document.createElement("input")
     htmlInputToggleMask.id = "htmlInputToggleMask"
     htmlInputToggleMask.type = "checkbox"
+    const defaultValueDrawAlphaMask = localStorage.getItem('drawAlphaMask')
+    if (defaultValueDrawAlphaMask) {
+        globalOptionDrawAlphaMask = defaultValueDrawAlphaMask === "true"
+    } else {
+        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`);
+    }
     htmlInputToggleMask.checked = globalOptionDrawAlphaMask
     htmlInputToggleMask.addEventListener("change", () => {
         console.log(`Update htmlInputToggleMask to: '${htmlInputToggleMask.checked}'`)
         globalOptionDrawAlphaMask = htmlInputToggleMask.checked
+        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`);
         // Force redraw of canvas
         globalForceRedraw = true
     })
@@ -408,10 +422,17 @@ const createOptionsInput = () => {
     const htmlInputToggleDebug = document.createElement("input")
     htmlInputToggleDebug.id = "htmlInputToggleDebug"
     htmlInputToggleDebug.type = "checkbox"
+    const defaultValueDebug = localStorage.getItem('debug')
+    if (defaultValueDebug) {
+        globalDebug = defaultValueDebug === "true"
+    } else {
+        localStorage.setItem('debug', `${globalDebug}`);
+    }
     htmlInputToggleDebug.checked = globalDebug
     htmlInputToggleDebug.addEventListener("change", () => {
         console.log(`Update htmlInputToggleDebug to: '${htmlInputToggleDebug.checked}'`)
         globalDebug = htmlInputToggleDebug.checked
+        localStorage.setItem('debug', `${globalDebug}`);
         // Force redraw of canvas
         globalForceRedraw = true
     })
@@ -432,6 +453,9 @@ const createOptionsInput = () => {
     htmlOptions.appendChild(document.createElement("br"))
     htmlOptions.appendChild(htmlInputToggleDebug)
     htmlOptions.appendChild(htmlLabelInputToggleDebug)
+
+    // TODO: Move options to HTML and only reference them here
+    // TODO: Add button to clear all local storage data ("reset/revert options")
 }
 
 window.addEventListener('load', () => {
