@@ -25,7 +25,24 @@
     <canvas id="main"></canvas>
 
     <!-- Element for all general options -->
-    <div id="options"></div>
+    <div id="options">
+        <input id="htmlInputSetBackgroundColor" type="color">
+        <label id="htmlLabelInputSetBackgroundColor" for="htmlInputSetBackgroundColor">
+            Select custom background color
+        </label>
+        <br>
+        <input id="htmlInputToggleMask" type="checkbox">
+        <label id="htmlLabelInputToggleMask" for="htmlInputToggleMask">
+            Render alpha mask (for chroma keying)
+        </label>
+        <br>
+        <input id="htmlInputToggleDebug" type="checkbox">
+        <label id="htmlLabelInputToggleDebug" for="htmlInputToggleDebug">
+            Debug view
+        </label>
+        <br>
+        <input id="htmlInputTriggerReset" type="button" value="Reset all options">
+    </div>
 
     <!-- Element for all controller specific options -->
     <div id="controller-options"></div>

@@ -52,7 +52,7 @@ const hexToRgba = (hex, alpha = undefined) => {
     if (alpha === undefined) {
         alpha = 1.0
     }
-    return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")";
+    return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")"
 }
 
 /**
@@ -308,7 +308,7 @@ const draw = (ctx) => {
         const textConnectGamepadParts = textConnectGamepad.split("\n")
         const heightCenter = ctx.canvas.height / 2 - (fontSize * textConnectGamepadParts.length) / 2
         for (const [index, textConnectGamepadPart] of textConnectGamepadParts.entries()) {
-            const textConnectGamepadSize = ctx.measureText(textConnectGamepadPart);
+            const textConnectGamepadSize = ctx.measureText(textConnectGamepadPart)
             ctx.fillText(textConnectGamepadPart, ctx.canvas.width / 2 - textConnectGamepadSize.width / 2, heightCenter + index * fontSize)
         }
     }
@@ -351,8 +351,8 @@ const initializeCanvas = () => {
 
     // Fill and resize it
     const dpi = window.devicePixelRatio
-    globalCtx.canvas.width = window.innerWidth * dpi;
-    globalCtx.canvas.height = window.innerHeight * dpi;
+    globalCtx.canvas.width = Math.floor(window.innerWidth * dpi)
+    globalCtx.canvas.height = Math.floor(window.innerHeight * dpi)
 
     globalCtx.fillStyle = "#F1F1F1"
     globalCtx.fillRect(0, 0, globalCtx.canvas.width, globalCtx.canvas.height)
@@ -362,95 +362,89 @@ window.addEventListener('resize', () => {
     if (globalCtx) {
         // Resize canvas if window is resized
         const dpi = window.devicePixelRatio
-        globalCtx.canvas.width = window.innerWidth * dpi;
-        globalCtx.canvas.height = window.innerHeight * dpi;
+        globalCtx.canvas.width = Math.floor(window.innerWidth * dpi)
+        globalCtx.canvas.height = Math.floor(window.innerHeight * dpi)
     }
     // Force redraw of canvas
     globalForceRedraw = true
 })
 
+const initializeOptions = () => {
+    globalOptionBackgroundColor = "#F1F1F1"
+    globalOptionDrawAlphaMask = false
+    globalDebug = false
+}
+
 const createOptionsInput = () => {
-    const htmlInputBackgroundColor = document.createElement("input")
-    htmlInputBackgroundColor.id = "htmlInputBackgroundColor"
-    htmlInputBackgroundColor.type = "color"
+    // Set default options
+    initializeOptions()
+
+    /** @type {HTMLInputElement} */
+    // @ts-ignore
+    const htmlInputSetBackgroundColor = document.getElementById("htmlInputSetBackgroundColor")
     const defaultValueBackgroundColor = localStorage.getItem('backgroundColor')
     if (defaultValueBackgroundColor) {
         globalOptionBackgroundColor = defaultValueBackgroundColor
     } else {
-        localStorage.setItem('backgroundColor', globalOptionBackgroundColor);
+        localStorage.setItem('backgroundColor', globalOptionBackgroundColor)
     }
-    htmlInputBackgroundColor.value = globalOptionBackgroundColor
-    htmlInputBackgroundColor.addEventListener("change", () => {
-        console.log(`Update htmlInputBackgroundColor to: '${htmlInputBackgroundColor.value}'`)
-        globalOptionBackgroundColor = htmlInputBackgroundColor.value
-        localStorage.setItem('backgroundColor', globalOptionBackgroundColor);
+    htmlInputSetBackgroundColor.value = globalOptionBackgroundColor
+    htmlInputSetBackgroundColor.addEventListener("change", () => {
+        console.log(`Update htmlInputBackgroundColor to: '${htmlInputSetBackgroundColor.value}'`)
+        globalOptionBackgroundColor = htmlInputSetBackgroundColor.value
+        localStorage.setItem('backgroundColor', globalOptionBackgroundColor)
         // Force redraw of canvas
         globalForceRedraw = true
     })
-    const htmlLabelInputBackgroundColor = document.createElement("label")
-    htmlLabelInputBackgroundColor.id = "htmlLabelInputBackgroundColor"
-    htmlLabelInputBackgroundColor.htmlFor = "htmlInputBackgroundColor"
-    htmlLabelInputBackgroundColor.textContent = "Select custom background color"
 
-    const htmlInputToggleMask = document.createElement("input")
-    htmlInputToggleMask.id = "htmlInputToggleMask"
-    htmlInputToggleMask.type = "checkbox"
+    /** @type {HTMLInputElement} */
+    // @ts-ignore
+    const htmlInputToggleMask = document.getElementById("htmlInputToggleMask")
     const defaultValueDrawAlphaMask = localStorage.getItem('drawAlphaMask')
     if (defaultValueDrawAlphaMask) {
         globalOptionDrawAlphaMask = defaultValueDrawAlphaMask === "true"
     } else {
-        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`);
+        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`)
     }
     htmlInputToggleMask.checked = globalOptionDrawAlphaMask
     htmlInputToggleMask.addEventListener("change", () => {
         console.log(`Update htmlInputToggleMask to: '${htmlInputToggleMask.checked}'`)
         globalOptionDrawAlphaMask = htmlInputToggleMask.checked
-        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`);
+        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`)
         // Force redraw of canvas
         globalForceRedraw = true
     })
-    const htmlLabelInputToggleAlphaMask = document.createElement("label")
-    htmlLabelInputToggleAlphaMask.id = "htmlLabelInputToggleMask"
-    htmlLabelInputToggleAlphaMask.htmlFor = "htmlInputToggleMask"
-    htmlLabelInputToggleAlphaMask.textContent = "Render alpha mask (for chroma keying)"
 
-    const htmlInputToggleDebug = document.createElement("input")
-    htmlInputToggleDebug.id = "htmlInputToggleDebug"
-    htmlInputToggleDebug.type = "checkbox"
+    /** @type {HTMLInputElement} */
+    // @ts-ignore
+    const htmlInputToggleDebug = document.getElementById("htmlInputToggleDebug")
     const defaultValueDebug = localStorage.getItem('debug')
     if (defaultValueDebug) {
         globalDebug = defaultValueDebug === "true"
     } else {
-        localStorage.setItem('debug', `${globalDebug}`);
+        localStorage.setItem('debug', `${globalDebug}`)
     }
     htmlInputToggleDebug.checked = globalDebug
     htmlInputToggleDebug.addEventListener("change", () => {
         console.log(`Update htmlInputToggleDebug to: '${htmlInputToggleDebug.checked}'`)
         globalDebug = htmlInputToggleDebug.checked
-        localStorage.setItem('debug', `${globalDebug}`);
+        localStorage.setItem('debug', `${globalDebug}`)
         // Force redraw of canvas
         globalForceRedraw = true
     })
-    const htmlLabelInputToggleDebug = document.createElement("label")
-    htmlLabelInputToggleDebug.id = "htmlLabelInputToggleDebug"
-    htmlLabelInputToggleDebug.htmlFor = "htmlInputToggleDebug"
-    htmlLabelInputToggleDebug.textContent = "Debug view"
 
-    const htmlOptions = document.getElementById("options")
-    while (htmlOptions.firstChild) {
-        htmlOptions.removeChild(htmlOptions.lastChild)
-    }
-    htmlOptions.appendChild(htmlInputBackgroundColor)
-    htmlOptions.appendChild(htmlLabelInputBackgroundColor)
-    htmlOptions.appendChild(document.createElement("br"))
-    htmlOptions.appendChild(htmlInputToggleMask)
-    htmlOptions.appendChild(htmlLabelInputToggleAlphaMask)
-    htmlOptions.appendChild(document.createElement("br"))
-    htmlOptions.appendChild(htmlInputToggleDebug)
-    htmlOptions.appendChild(htmlLabelInputToggleDebug)
-
-    // TODO: Move options to HTML and only reference them here
-    // TODO: Add button to clear all local storage data ("reset/revert options")
+    /** @type {HTMLInputElement} */
+    // @ts-ignore
+    const htmlInputTriggerReset = document.getElementById("htmlInputTriggerReset")
+    htmlInputTriggerReset.addEventListener("click", () => {
+        console.log(`Update htmlInputToggleDebug to: '${htmlInputToggleDebug.checked}'`)
+        // Clear all customized options
+        localStorage.clear()
+        // Set default options
+        initializeOptions()
+        // Force redraw of canvas
+        globalForceRedraw = true
+    })
 }
 
 window.addEventListener('load', () => {
