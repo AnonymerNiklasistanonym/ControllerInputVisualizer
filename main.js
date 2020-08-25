@@ -29,13 +29,6 @@ let globalEmptyFrameAlreadyRendered
 let globalTimeLastFrame
 
 /**
- * The canvas in which everything is rendered
- * @type {HTMLCanvasElement}
- * @global
- */
-let globalCanvas
-
-/**
  * The 2D rendering context of the canvas
  * @type {CanvasRenderingContext2D}
  * @global
@@ -278,12 +271,11 @@ let globalForceRedraw = false
 
 /**
  * Draw a frame
- * @param {HTMLCanvasElement} canvas
  * @param {CanvasRenderingContext2D} ctx
  */
-const draw = (canvas, ctx) => {
+const draw = (ctx) => {
     globalForceRedraw = false
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
     // Draw canvas elements
     if (globalDebug) {
@@ -299,25 +291,25 @@ const draw = (canvas, ctx) => {
             drawAlphaMask: globalOptionDrawAlphaMask
         }
         ctx.fillStyle = globalOptionDrawAlphaMask === true ? "black" : globalOptionBackgroundColor
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         for (const [gamepadIndex, gamepad] of globalGamepads.entries()) {
             drawGamepad(gamepad, gamepadIndex, globalGamepads.size, options)
         }
     } else {
         ctx.fillStyle = globalOptionBackgroundColor
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         ctx.fillStyle = "rgba(255,255,255,0.35)"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         console.log("draw empty canvas")
         const fontSize = 30
         ctx.font = `${fontSize}x Helvetica`
         ctx.fillStyle = "black"
         const textConnectGamepad = "Connect a\ngamepad and\npress any\nbutton"
         const textConnectGamepadParts = textConnectGamepad.split("\n")
-        const heightCenter = canvas.height / 2 - (fontSize * textConnectGamepadParts.length) / 2
+        const heightCenter = ctx.canvas.height / 2 - (fontSize * textConnectGamepadParts.length) / 2
         for (const [index, textConnectGamepadPart] of textConnectGamepadParts.entries()) {
             const textConnectGamepadSize = ctx.measureText(textConnectGamepadPart);
-            ctx.fillText(textConnectGamepadPart, canvas.width / 2 - textConnectGamepadSize.width / 2, heightCenter + index * fontSize)
+            ctx.fillText(textConnectGamepadPart, ctx.canvas.width / 2 - textConnectGamepadSize.width / 2, heightCenter + index * fontSize)
         }
     }
 }
@@ -344,7 +336,7 @@ const loop = time => {
         globalAnimationFrameRequest = window.requestAnimationFrame(loop)
         return
     }
-    draw(globalCanvas, globalCtx)
+    draw(globalCtx)
     // Save time when frame was drawn
     globalTimeLastFrame = time
     // Repeat this loop as fast as possible
@@ -352,23 +344,26 @@ const loop = time => {
 }
 
 const initializeCanvas = () => {
+    /** @type {HTMLCanvasElement} */
     // @ts-ignore
-    globalCanvas = document.getElementById("main")
-    globalCtx = globalCanvas.getContext("2d")
+    const canvas = document.getElementById("main")
+    globalCtx = canvas.getContext("2d")
 
     // Fill and resize it
-    globalCtx.canvas.width = window.innerWidth;
-    globalCtx.canvas.height = window.innerHeight;
+    const dpi = window.devicePixelRatio
+    globalCtx.canvas.width = window.innerWidth * dpi;
+    globalCtx.canvas.height = window.innerHeight * dpi;
 
     globalCtx.fillStyle = "#F1F1F1"
-    globalCtx.fillRect(0, 0, globalCanvas.width, globalCanvas.height)
+    globalCtx.fillRect(0, 0, globalCtx.canvas.width, globalCtx.canvas.height)
 }
 
 window.addEventListener('resize', () => {
-    if (globalCanvas) {
+    if (globalCtx) {
         // Resize canvas if window is resized
-        globalCanvas.width = window.innerWidth
-        globalCanvas.height = window.innerHeight
+        const dpi = window.devicePixelRatio
+        globalCtx.canvas.width = window.innerWidth * dpi;
+        globalCtx.canvas.height = window.innerHeight * dpi;
     }
     // Force redraw of canvas
     globalForceRedraw = true
