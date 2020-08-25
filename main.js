@@ -261,7 +261,7 @@ const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
         XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad)
     } else {
         if (XBoxOne360ControllerChromium.gamepadCanBeSupported(gamepad)) {
-        XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad)
+            XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad)
         } else if (XBoxOne360ControllerFirefox.gamepadCanBeSupported(gamepad)) {
             XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad)
         } else {
@@ -334,22 +334,17 @@ const loop = time => {
     globalAnimationFrameRequest = window.requestAnimationFrame(loop)
 }
 
-
-
 const initializeCanvas = () => {
-    /** @type {HTMLCanvasElement} */
     // @ts-ignore
-    const canvas = document.getElementById("main")
-    const ctx = canvas.getContext("2d")
+    globalCanvas = document.getElementById("main")
+    globalCtx = globalCanvas.getContext("2d")
 
     // Fill and resize it
-    ctx.canvas.width  = window.innerWidth;
-    ctx.canvas.height = window.innerHeight;
+    globalCtx.canvas.width = window.innerWidth;
+    globalCtx.canvas.height = window.innerHeight;
 
-    ctx.fillStyle = "#F1F1F1"
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-    return { canvas, ctx }
+    globalCtx.fillStyle = "#F1F1F1"
+    globalCtx.fillRect(0, 0, globalCanvas.width, globalCanvas.height)
 }
 
 window.addEventListener('resize', () => {
@@ -362,9 +357,7 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('load', () => {
     // Wait until the page is fully loaded then
-    const info = initializeCanvas()
-    globalCanvas = info.canvas
-    globalCtx = info.ctx
+    initializeCanvas()
 
     // Add options
     const triggerColorDialog = () => new Promise((resolve) => {
