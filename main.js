@@ -33,14 +33,14 @@ let globalTimeLastFrame
  * @type {HTMLCanvasElement}
  * @global
  */
-let canvas
+let globalCanvas
 
 /**
  * The 2D rendering context of the canvas
  * @type {CanvasRenderingContext2D}
  * @global
  */
-let ctx
+let globalCtx
 
 /**
  * Indicates if debugging is activated
@@ -238,16 +238,16 @@ const update = timeDelta => {
  */
 const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
     if (debug) {
-        ctx.fillStyle = "black"
-        ctx.font = "20px FiraCode"
+        globalCtx.fillStyle = "black"
+        globalCtx.font = "20px FiraCode"
         for (const [controllerButtonId, controllerButton] of gamepad.buttons.entries()) {
-            ctx.fillText(`${controllerButtonId}: ${Math.round(controllerButton.value * 100)}% (${
+            globalCtx.fillText(`${controllerButtonId}: ${Math.round(controllerButton.value * 100)}% (${
                 controllerButton.value > 0 ? "pressed" : "not pressed"})`,
                 50 + (300 * gamepadIndex),
                 90 + (25 * controllerButtonId))
         }
         for (const [controllerAxisId, controllerAxis] of gamepad.axes.entries()) {
-            ctx.fillText(`${controllerAxisId}: ${controllerAxis.toFixed(4)} (${controllerAxis})`,
+            globalCtx.fillText(`${controllerAxisId}: ${controllerAxis.toFixed(4)} (${controllerAxis})`,
                 50 + (300 * gamepadIndex),
                 130 + (25 * (gamepad.buttons.length + controllerAxisId)))
         }
@@ -256,14 +256,14 @@ const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
     const startX = 90 + (500 * gamepadIndex)
 
     if (XBoxOne360ControllerChromium.gamepadIsSupported(gamepad)) {
-        XBoxOne360ControllerChromium.draw(ctx, startX, startY, gamepad)
+        XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad)
     } else if (XBoxOne360ControllerFirefox.gamepadIsSupported(gamepad)) {
-        XBoxOne360ControllerFirefox.draw(ctx, startX, startY, gamepad)
+        XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad)
     } else {
         if (XBoxOne360ControllerChromium.gamepadCanBeSupported(gamepad)) {
-        XBoxOne360ControllerChromium.draw(ctx, startX, startY, gamepad)
+        XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad)
         } else if (XBoxOne360ControllerFirefox.gamepadCanBeSupported(gamepad)) {
-            XBoxOne360ControllerFirefox.draw(ctx, startX, startY, gamepad)
+            XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad)
         } else {
             throw Error("No gamepad profile was found that could render the currently connected controller")
         }
@@ -273,8 +273,10 @@ const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
 
 /**
  * Draw a frame
+ * @param {HTMLCanvasElement} canvas
+ * @param {CanvasRenderingContext2D} ctx
  */
-const draw = () => {
+const draw = (canvas, ctx) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     // Draw canvas elements
     if (debug) {
@@ -325,7 +327,7 @@ const loop = time => {
         // If update returned false no new frame needs to be drawn
         return window.cancelAnimationFrame(globalAnimationFrameRequest)
     }
-    draw()
+    draw(globalCanvas, globalCtx)
     // Save time when frame was drawn
     globalTimeLastFrame = time
     // Repeat this loop as fast as possible
@@ -335,26 +337,49 @@ const loop = time => {
 
 
 const initializeCanvas = () => {
+    /** @type {HTMLCanvasElement} */
     // @ts-ignore
-    canvas = document.getElementById("main")
-    ctx = canvas.getContext("2d")
+    const canvas = document.getElementById("main")
+    const ctx = canvas.getContext("2d")
 
     // Fill and resize it
-    canvas.style.width = '1280px'
-    canvas.style.height = '920px'
-    canvas.width = canvas.offsetWidth
-    canvas.height = canvas.offsetHeight
-    ctx.fillStyle = "grey"
+    ctx.canvas.width  = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
+
+    ctx.fillStyle = "#F1F1F1"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    return { canvas, ctx }
 }
 
-
+window.addEventListener('resize', () => {
+    if (globalCanvas) {
+        // Resize canvas if window is resized
+        globalCanvas.width = window.innerWidth
+        globalCanvas.height = window.innerHeight
+    }
+})
 
 window.addEventListener('load', () => {
     // Wait until the page is fully loaded then
-    initializeCanvas()
+    const info = initializeCanvas()
+    globalCanvas = info.canvas
+    globalCtx = info.ctx
 
     // Add options
+    const triggerColorDialog = () => new Promise((resolve) => {
+        console.log("trigger color dialog")
+        const colorInput = document.createElement("input")
+        colorInput.id = "colorDialogID"
+        colorInput.type = "color"
+        colorInput.style.display = "none"
+        colorInput.onchange = () => {
+            resolve(colorInput.value)
+        }
+        document.body.appendChild(colorInput)
+        colorInput.click()
+    })
+    triggerColorDialog().then(console.log)
 
     // Start render loop
     globalAnimationFrameRequest = window.requestAnimationFrame(loop)
