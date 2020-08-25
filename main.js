@@ -45,7 +45,7 @@ let globalCtx
 /**
  * Indicates if debugging is activated
  */
-let debug = true
+let globalDebug = true
 
 /**
  * https://stackoverflow.com/a/28056903
@@ -68,7 +68,7 @@ const hexToRgba = (hex, alpha = undefined) => {
  */
 function addGamepad(gamepad) {
     /* >> Temporary HTML debugging */
-    if (debug) {
+    if (globalDebug) {
         const htmlGamepad = document.createElement("div")
         htmlGamepad.setAttribute("id", "gamepad" + gamepad.index)
         const htmlGamepadTitle = document.createElement("h1")
@@ -116,7 +116,7 @@ function addGamepad(gamepad) {
  */
 function removeGamepad(gamepad) {
     /* >> Temporary HTML debugging */
-    if (debug) {
+    if (globalDebug) {
         const htmlGamepad = document.getElementById("gamepad" + gamepad.index)
         document.body.removeChild(htmlGamepad)
     }
@@ -142,7 +142,7 @@ const updateGamepads = () => {
     }
 
     /* >> Temporary HTML debugging */
-    if (debug) {
+    if (globalDebug) {
         for (const [gamepadId, gamepad] of globalGamepads.entries()) {
             const htmlGamepad = document.getElementById("gamepad" + gamepadId)
             /** @type {HTMLCollectionOf<HTMLDivElement>} */
@@ -175,7 +175,7 @@ const updateGamepads = () => {
 
 window.addEventListener("gamepadconnected", e => {
     /* >> Temporary console debugging */
-    if (debug) {
+    if (globalDebug) {
         /** @type{Gamepad} */
         // @ts-ignore
         const gamepad = e.gamepad
@@ -189,7 +189,7 @@ window.addEventListener("gamepadconnected", e => {
 })
 window.addEventListener("gamepaddisconnected", e => {
     /* >> Temporary console debugging */
-    if (debug) {
+    if (globalDebug) {
         /** @type{Gamepad} */
         // @ts-ignore
         const gamepad = e.gamepad
@@ -220,13 +220,14 @@ const update = timeDelta => {
 
     // Logic to stop rendering once or if no gamepads are connected
     if (globalGamepads.size === 0) {
-        if (globalEmptyFrameAlreadyRendered) {
+        if (globalEmptyFrameAlreadyRendered && globalForceRedraw === false) {
             return false
         }
         globalEmptyFrameAlreadyRendered = true
     } else {
         globalEmptyFrameAlreadyRendered = false
     }
+    globalForceRedraw = false
     return true
 }
 
@@ -236,8 +237,8 @@ const update = timeDelta => {
  * @param {number} gamepadIndex The index of the gamepad in relation to all connected gamepads
  * @param {number} gamepadCount The number of connected gamepads
  */
-const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
-    if (debug) {
+const drawGamepad = (gamepad, gamepadIndex, gamepadCount, options) => {
+    if (globalDebug) {
         globalCtx.fillStyle = "black"
         globalCtx.font = "20px FiraCode"
         for (const [controllerButtonId, controllerButton] of gamepad.buttons.entries()) {
@@ -252,18 +253,18 @@ const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
                 130 + (25 * (gamepad.buttons.length + controllerAxisId)))
         }
     }
-    const startY = 150 + (25 * (debug ? gamepad.buttons.length + gamepad.axes.length : 0))
+    const startY = 150 + (25 * (globalDebug ? gamepad.buttons.length + gamepad.axes.length : 0))
     const startX = 90 + (500 * gamepadIndex)
 
     if (XBoxOne360ControllerChromium.gamepadIsSupported(gamepad)) {
-        XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad)
+        XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad, options)
     } else if (XBoxOne360ControllerFirefox.gamepadIsSupported(gamepad)) {
-        XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad)
+        XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad, options)
     } else {
         if (XBoxOne360ControllerChromium.gamepadCanBeSupported(gamepad)) {
-            XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad)
+            XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad, options)
         } else if (XBoxOne360ControllerFirefox.gamepadCanBeSupported(gamepad)) {
-            XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad)
+            XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad, options)
         } else {
             throw Error("No gamepad profile was found that could render the currently connected controller")
         }
@@ -271,15 +272,24 @@ const drawGamepad = (gamepad, gamepadIndex, gamepadCount) => {
 
 }
 
+let globalOptionDrawAlphaMask = false
+let globalOptionBackgroundColor = "#F1F1F1"
+let globalForceRedraw = false
+
 /**
  * Draw a frame
  * @param {HTMLCanvasElement} canvas
  * @param {CanvasRenderingContext2D} ctx
  */
 const draw = (canvas, ctx) => {
+    globalForceRedraw = false
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    ctx.fillStyle = globalOptionDrawAlphaMask === true ? "black" : globalOptionBackgroundColor
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
     // Draw canvas elements
-    if (debug) {
+    if (globalDebug) {
         ctx.font = "30px FiraCode"
         ctx.fillStyle = "black"
         ctx.fillText(globalTimeLastFrame.toString(), 50, 50)
@@ -287,15 +297,15 @@ const draw = (canvas, ctx) => {
     }
 
     if (globalGamepads.size > 0) {
-        ctx.fillStyle = "#00FFFF"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        /** @type {{drawAlphaMask?: boolean, [key: string]: any}} **/
+        const options = {
+            drawAlphaMask: globalOptionDrawAlphaMask
+        }
         for (const [gamepadIndex, gamepad] of globalGamepads.entries()) {
-            drawGamepad(gamepad, gamepadIndex, globalGamepads.size)
+            drawGamepad(gamepad, gamepadIndex, globalGamepads.size, options)
         }
     } else {
         console.log("draw empty canvas")
-        ctx.fillStyle = "grey"
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
         ctx.fillStyle = "green"
         ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2)
         ctx.font = "30px Helvetica"
@@ -304,8 +314,6 @@ const draw = (canvas, ctx) => {
         const textConnectGamepadSize = ctx.measureText(textConnectGamepad);
         ctx.fillText(textConnectGamepad, canvas.width / 2 - textConnectGamepadSize.width / 2, canvas.height / 2)
     }
-
-
 }
 
 /**
@@ -323,9 +331,12 @@ const loop = time => {
         // If there was no delta time cancel previous animation frame request
         window.cancelAnimationFrame(globalAnimationFrameRequest)
     }
-    if (!update(deltaTime)) {
+    if (!update(deltaTime) && globalForceRedraw === false) {
+        console.log("don't draw because !update(deltaTime)")
         // If update returned false no new frame needs to be drawn
-        return window.cancelAnimationFrame(globalAnimationFrameRequest)
+        window.cancelAnimationFrame(globalAnimationFrameRequest)
+        globalAnimationFrameRequest = window.requestAnimationFrame(loop)
+        return
     }
     draw(globalCanvas, globalCtx)
     // Save time when frame was drawn
@@ -353,11 +364,73 @@ window.addEventListener('resize', () => {
         globalCanvas.width = window.innerWidth
         globalCanvas.height = window.innerHeight
     }
+    // Force redraw of canvas
+    globalForceRedraw = true
 })
+
+const createOptionsInput = () => {
+    const htmlInputBackgroundColor = document.createElement("input")
+    htmlInputBackgroundColor.id = "htmlInputBackgroundColor"
+    htmlInputBackgroundColor.type = "color"
+    htmlInputBackgroundColor.value = globalOptionBackgroundColor
+    htmlInputBackgroundColor.addEventListener("change", () => {
+        console.log(`Update htmlInputBackgroundColor to: '${htmlInputBackgroundColor.value}'`)
+        globalOptionBackgroundColor = htmlInputBackgroundColor.value
+        // Force redraw of canvas
+        globalForceRedraw = true
+    })
+    const htmlLabelInputBackgroundColor = document.createElement("label")
+    htmlLabelInputBackgroundColor.id = "htmlLabelInputBackgroundColor"
+    htmlLabelInputBackgroundColor.htmlFor = "htmlInputBackgroundColor"
+    htmlLabelInputBackgroundColor.textContent = "Select custom background color"
+
+    const htmlInputToggleMask = document.createElement("input")
+    htmlInputToggleMask.id = "htmlInputToggleMask"
+    htmlInputToggleMask.type = "checkbox"
+    htmlInputToggleMask.checked = globalOptionDrawAlphaMask
+    htmlInputToggleMask.addEventListener("change", () => {
+        console.log(`Update htmlInputToggleMask to: '${htmlInputToggleMask.checked}'`)
+        globalOptionDrawAlphaMask = htmlInputToggleMask.checked
+        // Force redraw of canvas
+        globalForceRedraw = true
+    })
+    const htmlLabelInputToggleAlphaMask = document.createElement("label")
+    htmlLabelInputToggleAlphaMask.id = "htmlLabelInputToggleMask"
+    htmlLabelInputToggleAlphaMask.htmlFor = "htmlInputToggleMask"
+    htmlLabelInputToggleAlphaMask.textContent = "Render alpha mask (for chroma keying)"
+
+    const htmlInputToggleDebug = document.createElement("input")
+    htmlInputToggleDebug.id = "htmlInputToggleDebug"
+    htmlInputToggleDebug.type = "checkbox"
+    htmlInputToggleDebug.checked = globalDebug
+    htmlInputToggleDebug.addEventListener("change", () => {
+        console.log(`Update htmlInputToggleDebug to: '${htmlInputToggleDebug.checked}'`)
+        globalDebug = htmlInputToggleDebug.checked
+        // Force redraw of canvas
+        globalForceRedraw = true
+    })
+    const htmlLabelInputToggleDebug = document.createElement("label")
+    htmlLabelInputToggleDebug.id = "htmlLabelInputToggleDebug"
+    htmlLabelInputToggleDebug.htmlFor = "htmlInputToggleDebug"
+    htmlLabelInputToggleDebug.textContent = "Debug view"
+
+    const htmlOptions = document.createElement("div")
+    htmlOptions.appendChild(htmlInputBackgroundColor)
+    htmlOptions.appendChild(htmlLabelInputBackgroundColor)
+    htmlOptions.appendChild(document.createElement("br"))
+    htmlOptions.appendChild(htmlInputToggleMask)
+    htmlOptions.appendChild(htmlLabelInputToggleAlphaMask)
+    htmlOptions.appendChild(document.createElement("br"))
+    htmlOptions.appendChild(htmlInputToggleDebug)
+    htmlOptions.appendChild(htmlLabelInputToggleDebug)
+
+    document.body.appendChild(htmlOptions)
+}
 
 window.addEventListener('load', () => {
     // Wait until the page is fully loaded then
     initializeCanvas()
+    createOptionsInput()
 
     // Add options
     const triggerColorDialog = () => new Promise((resolve) => {
@@ -365,15 +438,18 @@ window.addEventListener('load', () => {
         const colorInput = document.createElement("input")
         colorInput.id = "colorDialogID"
         colorInput.type = "color"
-        colorInput.style.display = "none"
-        colorInput.onchange = () => {
+        colorInput.style.opacity = "0"
+        colorInput.style.position = "absolute"
+        colorInput.addEventListener("change", () => {
             resolve(colorInput.value)
-        }
+        })
         document.body.appendChild(colorInput)
-        colorInput.click()
+        document.getElementById("colorDialogID").click()
     })
-    triggerColorDialog().then(console.log)
 
     // Start render loop
     globalAnimationFrameRequest = window.requestAnimationFrame(loop)
+
+    triggerColorDialog().then(console.log)
+
 })

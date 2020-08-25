@@ -26,7 +26,7 @@ class GamepadVisualizationProfile {
      * @param {number} x
      * @param {number} y
      * @param {Gamepad} gamepad
-     * @param {{drawMask?: boolean, [key: string]: any}} options
+     * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
      */
     static draw(ctx, x, y, gamepad, options = {}) {
         throw Error("Not implemented")
@@ -55,9 +55,10 @@ const globalGamepadButtonSizeRound = Object.freeze({
  * @param {string} name Button display text
  * @param {string} color Button color
  * @param {boolean} pressed Indicator if button is pressed
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
-const drawGamepadButtonRound = (ctx, x, y, name, color = "black", pressed = false) => {
-    if (debug) {
+const drawGamepadButtonRound = (ctx, x, y, name, color = "black", pressed = false, options = {}) => {
+    if (globalDebug) {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
@@ -69,12 +70,12 @@ const drawGamepadButtonRound = (ctx, x, y, name, color = "black", pressed = fals
     }
     ctx.beginPath()
     ctx.arc(x, y, globalGamepadButtonRadiusRound * 2, 0, 2 * Math.PI);
-    ctx.fillStyle = hexToRgba(color, pressed ? 0.75 : 0.4)
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" : hexToRgba(color, pressed ? 0.75 : 0.4)
     ctx.fill()
     const fontHeightPt = 20
     ctx.font = `${fontHeightPt}pt Helvetica`
     const textButtonSize = ctx.measureText(name);
-    ctx.fillStyle = hexToRgba(color)
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" : hexToRgba(color)
     ctx.fillText(name, x - (textButtonSize.width / 2),
         y + (fontHeightPt / 3))
 }
@@ -93,9 +94,10 @@ const globalGamepadButtonSizeGroupXboxABXY = Object.freeze({
  * @param {GamepadButton} buttonB Button B
  * @param {GamepadButton} buttonX Button X
  * @param {GamepadButton} buttonY Button Y
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
-const drawGamepadButtonGroupXboxABXY = (ctx, x, y, buttonA, buttonB, buttonX, buttonY) => {
-    if (debug) {
+const drawGamepadButtonGroupXboxABXY = (ctx, x, y, buttonA, buttonB, buttonX, buttonY, options = {}) => {
+    if (globalDebug) {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
@@ -106,13 +108,13 @@ const drawGamepadButtonGroupXboxABXY = (ctx, x, y, buttonA, buttonB, buttonX, bu
             globalGamepadButtonSizeGroupXboxABXY.width, globalGamepadButtonSizeGroupXboxABXY.height)
     }
     drawGamepadButtonRound(ctx, x, y + globalGamepadButtonSizeRound.height,
-        "A", "#6DA13A", buttonA.value > 0)
+        "A", "#6DA13A", buttonA.value > 0, options)
     drawGamepadButtonRound(ctx, x, y - globalGamepadButtonSizeRound.height,
-        "Y", "#FA9D23", buttonY.value > 0)
+        "Y", "#FA9D23", buttonY.value > 0, options)
     drawGamepadButtonRound(ctx, x + globalGamepadButtonSizeRound.width, y,
-        "B", "#D41F1F", buttonB.value > 0)
+        "B", "#D41F1F", buttonB.value > 0, options)
     drawGamepadButtonRound(ctx, x - globalGamepadButtonSizeRound.width, y,
-        "X", "#234EFA", buttonX.value > 0)
+        "X", "#234EFA", buttonX.value > 0, options)
 
 }
 
@@ -131,9 +133,10 @@ const globalGamepadButtonSizeAxis = Object.freeze({
  * @param {number} axisX Axis X
  * @param {number} axisY Axis Y
  * @param {boolean} pressed Indicator if button is pressed
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
-const drawGamepadButtonAxis = (ctx, x, y, axisX, axisY, pressed = false) => {
-    if (debug) {
+const drawGamepadButtonAxis = (ctx, x, y, axisX, axisY, pressed = false, options = {}) => {
+    if (globalDebug) {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
@@ -145,14 +148,21 @@ const drawGamepadButtonAxis = (ctx, x, y, axisX, axisY, pressed = false) => {
     }
     ctx.beginPath()
     ctx.arc(x, y, (globalGamepadButtonRadiusAxis * 2) * 1.45, 0, 2 * Math.PI)
-    ctx.fillStyle = ctx.createRadialGradient(x, y, 1, x, y, 55)
-    ctx.fillStyle.addColorStop(0, '#C0C0C0')
-    ctx.fillStyle.addColorStop(1, '#717171')
+    if (options.drawAlphaMask === true) {
+        ctx.fillStyle = "white"
+    } else {
+        ctx.fillStyle = ctx.createRadialGradient(x, y, 1, x, y, 55)
+        ctx.fillStyle.addColorStop(0, '#C0C0C0')
+        ctx.fillStyle.addColorStop(1, '#717171')
+    }
     ctx.fill()
     ctx.beginPath()
     const middleButtonRadius = (globalGamepadButtonRadiusAxis * 2) * 0.45
     ctx.arc(x + (axisX * middleButtonRadius), y + (axisY * middleButtonRadius),
         globalGamepadButtonRadiusAxis * (pressed ? 2 : 1.75), 0, 2 * Math.PI)
+        if (options.drawAlphaMask === true) {
+            ctx.fillStyle = "white"
+        } else {
     ctx.fillStyle = ctx.createRadialGradient(
         x + (axisX * (globalGamepadButtonRadiusAxis * 2) * 0.45),
         y + (axisY * (globalGamepadButtonRadiusAxis * 2) * 0.45),
@@ -162,6 +172,7 @@ const drawGamepadButtonAxis = (ctx, x, y, axisX, axisY, pressed = false) => {
     )
     ctx.fillStyle.addColorStop(0, '#000000')
     ctx.fillStyle.addColorStop(1, '#404040')
+        }
     ctx.fill()
 }
 
@@ -182,9 +193,10 @@ const globalGamepadButtonSizePlus = Object.freeze({
  * @param {number} y Y coordinate
  * @param {"UP"|"DOWN"} pressDirectionVertical Vertical press direction
  * @param {"LEFT"|"RIGHT"} pressDirectionHorizontal Horizontal press direction
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
-const drawGamepadButtonPlus = (ctx, x, y, pressDirectionVertical = undefined, pressDirectionHorizontal = undefined) => {
-    if (debug) {
+const drawGamepadButtonPlus = (ctx, x, y, pressDirectionVertical = undefined, pressDirectionHorizontal = undefined, options = {}) => {
+    if (globalDebug) {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
@@ -208,7 +220,7 @@ const drawGamepadButtonPlus = (ctx, x, y, pressDirectionVertical = undefined, pr
         globalGamepadButtonSizePlusTile.width, globalGamepadButtonSizePlusTile.height * 3)
     ctx.rect(x - (globalGamepadButtonSizePlusTile.width / 2) - globalGamepadButtonSizePlusTile.width, y - (globalGamepadButtonSizePlusTile.width / 2),
         globalGamepadButtonSizePlusTile.width * 3, globalGamepadButtonSizePlusTile.height)
-    ctx.fillStyle = gradient
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" : gradient
     ctx.fill()
 }
 
@@ -231,16 +243,17 @@ const globalGamepadButtonSizeTop = Object.freeze({
  * @param {number} y Y coordinate
  * @param {"LEFT"|"RIGHT"} buttonDirection The direction of the button
  * @param {boolean} pressed Vertical press direction
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
-const drawGamepadButtonTop = (ctx, x, y, buttonDirection = "LEFT", pressed = undefined) => {
-    if (debug) {
+const drawGamepadButtonTop = (ctx, x, y, buttonDirection = "LEFT", pressed = undefined, options = {}) => {
+    if (globalDebug) {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
         ctx.strokeRect(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2,
             globalGamepadButtonSizeTop.width, globalGamepadButtonSizeTop.height)
     }
-    ctx.fillStyle = "black"
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" : "black"
 
     ctx.translate(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2 + (pressed ? globalGamepadButtonInfoTop.pressHeight : 0))
     if (buttonDirection === "RIGHT") {
@@ -264,16 +277,17 @@ const drawGamepadButtonTop = (ctx, x, y, buttonDirection = "LEFT", pressed = und
  * @param {number} x X coordinate
  * @param {number} y Y coordinate
  * @param {number} pressedValue Press direction (0 - 1)
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
-const drawGamepadButtonTrigger = (ctx, x, y, pressedValue = 0) => {
-    if (debug) {
+const drawGamepadButtonTrigger = (ctx, x, y, pressedValue = 0, options = {}) => {
+    if (globalDebug) {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
         // ctx.strokeRect(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2,
         //     globalGamepadButtonSizeTop.width, globalGamepadButtonSizeTop.height)
     }
-    ctx.fillStyle = "#616161"
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" : "#616161"
     const width = 25
     const pressDepth = 35
     const baseDepth = 25
@@ -286,16 +300,17 @@ const drawGamepadButtonTrigger = (ctx, x, y, pressedValue = 0) => {
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} x X coordinate
  * @param {number} y Y coordinate
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
-const drawGamepadCase = (ctx, x, y) => {
-    if (debug) {
+const drawGamepadCase = (ctx, x, y, options = {}) => {
+    if (globalDebug) {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
         // ctx.strokeRect(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2,
         //    globalGamepadButtonSizeTop.width, globalGamepadButtonSizeTop.height)
     }
-    ctx.fillStyle = "#F1F1F1"
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" : "black"
 
     ctx.translate(x, y)
     ctx.scale(2.25, 2.25)
@@ -339,7 +354,7 @@ class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
      * @param {number} x
      * @param {number} y
      * @param {Gamepad} gamepad
-     * @param {{drawMask?: boolean, [key: string]: any}} options
+     * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
      */
     static draw(ctx, x, y, gamepad, options = {}) {
 
@@ -367,30 +382,30 @@ class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
         }
 
         drawGamepadButtonTrigger(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
-            gamepad.buttons[6].value)
+            gamepad.buttons[6].value, options)
         drawGamepadButtonTrigger(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
-            gamepad.buttons[7].value)
+            gamepad.buttons[7].value, options)
 
         drawGamepadButtonTop(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2,
-            "LEFT", gamepad.buttons[4].value > 0)
+            "LEFT", gamepad.buttons[4].value > 0, options)
         drawGamepadButtonTop(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2,
-            "RIGHT", gamepad.buttons[5].value > 0)
+            "RIGHT", gamepad.buttons[5].value > 0, options)
 
-        drawGamepadCase(ctx, x - 86, y + 36)
+        drawGamepadCase(ctx, x - 86, y + 36, options)
 
         drawGamepadButtonGroupXboxABXY(ctx, x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 270,
             y + globalGamepadButtonSizeGroupXboxABXY.height / 2 + 70,
-            gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3])
+            gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3], options)
 
         drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 + 75,
-            gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0)
+            gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0, options)
 
         drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 210, y + globalGamepadButtonSizeAxis.height / 2 + 170,
-            gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0)
+            gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0, options)
 
 
         drawGamepadButtonPlus(ctx, x + globalGamepadButtonSizePlus.width / 2 + 70, y + globalGamepadButtonSizePlus.height / 2 + 175,
-            pressDirectionVertical, pressDirectionHorizontal)
+            pressDirectionVertical, pressDirectionHorizontal, options)
     }
 }
 
@@ -429,7 +444,7 @@ class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
      * @param {number} x
      * @param {number} y
      * @param {Gamepad} gamepad
-     * @param {{drawMask?: boolean, [key: string]: any}} options
+     * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
      */
     static draw(ctx, x, y, gamepad, options = {}) {
         drawGamepadButtonGroupXboxABXY(ctx, x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 300,
