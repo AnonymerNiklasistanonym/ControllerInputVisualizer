@@ -11,15 +11,10 @@ name: Lint Code Base
 # https://github.com/github/super-linter
 #
 
-#############################
-# Start the job on all push #
-#############################
-on:
-  push:
-    branches-ignore: [master]
-    # Remove the line above to run when pushing to master
-  pull_request:
-    branches: [master]
+################################################
+# Trigger the workflow on push or pull request #
+################################################
+on: [push, pull_request]
 
 ###############
 # Set the Job #
