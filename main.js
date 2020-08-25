@@ -285,9 +285,6 @@ const draw = (canvas, ctx) => {
     globalForceRedraw = false
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    ctx.fillStyle = globalOptionDrawAlphaMask === true ? "black" : globalOptionBackgroundColor
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
     // Draw canvas elements
     if (globalDebug) {
         ctx.font = "30px FiraCode"
@@ -301,18 +298,27 @@ const draw = (canvas, ctx) => {
         const options = {
             drawAlphaMask: globalOptionDrawAlphaMask
         }
+        ctx.fillStyle = globalOptionDrawAlphaMask === true ? "black" : globalOptionBackgroundColor
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
         for (const [gamepadIndex, gamepad] of globalGamepads.entries()) {
             drawGamepad(gamepad, gamepadIndex, globalGamepads.size, options)
         }
     } else {
+        ctx.fillStyle = globalOptionBackgroundColor
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = "rgba(255,255,255,0.35)"
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
         console.log("draw empty canvas")
-        ctx.fillStyle = "green"
-        ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2)
-        ctx.font = "30px Helvetica"
-        ctx.fillStyle = "white"
-        const textConnectGamepad = "Connect a gamepad and press any button"
-        const textConnectGamepadSize = ctx.measureText(textConnectGamepad);
-        ctx.fillText(textConnectGamepad, canvas.width / 2 - textConnectGamepadSize.width / 2, canvas.height / 2)
+        const fontSize = 30
+        ctx.font = `${fontSize}x Helvetica`
+        ctx.fillStyle = "black"
+        const textConnectGamepad = "Connect a\ngamepad and\npress any\nbutton"
+        const textConnectGamepadParts = textConnectGamepad.split("\n")
+        const heightCenter = canvas.height / 2 - (fontSize * textConnectGamepadParts.length) / 2
+        for (const [index, textConnectGamepadPart] of textConnectGamepadParts.entries()) {
+            const textConnectGamepadSize = ctx.measureText(textConnectGamepadPart);
+            ctx.fillText(textConnectGamepadPart, canvas.width / 2 - textConnectGamepadSize.width / 2, heightCenter + index * fontSize)
+        }
     }
 }
 
@@ -414,7 +420,10 @@ const createOptionsInput = () => {
     htmlLabelInputToggleDebug.htmlFor = "htmlInputToggleDebug"
     htmlLabelInputToggleDebug.textContent = "Debug view"
 
-    const htmlOptions = document.createElement("div")
+    const htmlOptions = document.getElementById("options")
+    while (htmlOptions.firstChild) {
+        htmlOptions.removeChild(htmlOptions.lastChild)
+    }
     htmlOptions.appendChild(htmlInputBackgroundColor)
     htmlOptions.appendChild(htmlLabelInputBackgroundColor)
     htmlOptions.appendChild(document.createElement("br"))
@@ -423,8 +432,6 @@ const createOptionsInput = () => {
     htmlOptions.appendChild(document.createElement("br"))
     htmlOptions.appendChild(htmlInputToggleDebug)
     htmlOptions.appendChild(htmlLabelInputToggleDebug)
-
-    document.body.appendChild(htmlOptions)
 }
 
 window.addEventListener('load', () => {
