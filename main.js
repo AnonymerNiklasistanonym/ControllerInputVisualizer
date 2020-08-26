@@ -1,6 +1,9 @@
 /**
  * Container for all currently connected gamepads
- * @type {Map<number, {gamepad: Gamepad;visualizationProfile: GamepadVisualizationProfile;userProfile: any;}>}
+ * @typedef {{name: string}} UserProfile
+ * @typedef {{gamepad: Gamepad;visualizationProfile: GamepadVisualizationProfile;userProfile: UserProfile}} GamepadInfo
+ * @typedef {Map<number, GamepadInfo>} GamepadInfoMap
+ * @type {GamepadInfoMap}
  */
 const globalGamepads = new Map()
 
@@ -18,6 +21,17 @@ let globalAnimationFrameRequest
 let globalEmptyFrameAlreadyRendered
 
 /**
+ * Indicator if something has changed and an update/redraw should be done
+ * (this is set to false after every draw call)
+ */
+let globalForceRedraw = true
+
+/**
+ * Indicator for activating debug output
+ */
+let globalDebug = false
+
+/**
  * Save the time of the last rendered frame for time deltas between frames
  * (this is used to calculate the delta time between rendering frames)
  * @type {number}
@@ -31,12 +45,20 @@ let globalTimeLastFrame
 let globalCtx
 
 /**
- * Indicates if debugging is activated
+ * Global option to draw the alpha mask of the gamepads
  */
-let globalDebug = false
+let globalOptionDrawAlphaMask = false
 
 /**
- * https://stackoverflow.com/a/28056903
+ * Global option to change the gamepad background
+ */
+let globalOptionBackgroundColor = "#DCDCDC"
+
+
+/**
+ * Convert a hex color code to an rgba code
+ *
+ * Source: https://stackoverflow.com/a/28056903
  * @param {string} hex Hex color with 6 numbers
  * @param {number} alpha Alpha value
  */
@@ -49,6 +71,106 @@ const hexToRgba = (hex, alpha = undefined) => {
     }
     return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")"
 }
+
+
+/**
+ * Check if for an id there is already a value in the local storage.
+ * If not return the default value and add an entry with this value.
+ * If yes return the existing value instead of the default value.
+ * @param {string} id The local storage entry id
+ * @param {any} defaultValue The default value
+ * @param {{jsonParseLocalStorageValue?: boolean;jsonStringifyDefaultValue?: boolean}} options
+ */
+const checkAndSetLocalStorageForId = (id, defaultValue, options = {}) => {
+    const localStorageValue = localStorage.getItem(id)
+    if (localStorageValue !== null && localStorageValue !== undefined) {
+        return options.jsonParseLocalStorageValue === true ? JSON.parse(localStorageValue) : localStorageValue
+    } else {
+        localStorage.setItem(id, options.jsonStringifyDefaultValue ? JSON.stringify(defaultValue) : defaultValue)
+    }
+    return defaultValue
+}
+
+/**
+ * Add or update a gamepad visualization user profile in the local storage
+ * @param {GamepadVisualizationProfile} gamepadVisualizationProfile
+ * @param {UserProfile} userProfile
+ */
+const addOrUpdateLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationProfile, userProfile) => {
+    // Check if there is an index for these profiles
+    const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
+    /** @type {UserProfile[]} */
+    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [], {
+        jsonParseLocalStorageValue: true,
+        jsonStringifyDefaultValue: true
+    })
+    // Check if profile already exists and if yes overwrite otherwise just add
+    const userProfileName = userProfile.name
+    let index = userProfiles.findIndex(a => a.name === userProfileName)
+    if (index === -1) {
+        userProfiles.push(userProfile)
+    } else {
+        userProfiles[index] = userProfile
+    }
+    localStorage.setItem(gamepadVisualizationProfiles, JSON.stringify(userProfiles))
+    localStorage.setItem(gamepadVisualizationProfiles + "-lastUsed", userProfile.name)
+}
+
+/**
+ * Get a gamepad visualization user profile from the local storage
+ * @param {GamepadVisualizationProfile} gamepadVisualizationProfile
+ * @param {string} userProfileName
+ */
+const getLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationProfile, userProfileName = undefined) => {
+    // Check if there is an index for these profiles
+    const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
+    /** @type {UserProfile[]} */
+    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [], {
+        jsonParseLocalStorageValue: true,
+        jsonStringifyDefaultValue: true
+    })
+    // If undefined return the first user profile
+    console.log({ userProfileName, userProfiles })
+    if ((userProfileName === undefined || userProfileName === null) && userProfiles.length > 0) {
+        return userProfiles[0]
+    } else {
+        // Otherwise check if profile already exists and if yes overwrite otherwise just add
+        let index = userProfiles.findIndex(a => a.name === userProfileName)
+        console.log({ index })
+        if (index !== -1) {
+            return userProfiles[index]
+        }
+    }
+    return undefined
+}
+
+/**
+ * Remove a gamepad visualization user profile from the local storage
+ * @param {GamepadVisualizationProfile} gamepadVisualizationProfile
+ * @param {UserProfile} userProfile
+ */
+const removeLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationProfile, userProfile) => {
+    // Check if there is an index for these profiles
+    const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
+    /** @type {UserProfile[]} */
+    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [], {
+        jsonParseLocalStorageValue: true,
+        jsonStringifyDefaultValue: true
+    })
+    // Check if profile already exists and if yes overwrite otherwise just add
+    const userProfileName = userProfile.name
+    let index = userProfiles.findIndex(a => a.name === userProfileName)
+    if (index !== -1) {
+        userProfiles.splice(index, 1)
+    }
+    localStorage.setItem(gamepadVisualizationProfiles, JSON.stringify(userProfiles))
+
+    const lastUsed = localStorage.getItem(gamepadVisualizationProfiles + "-lastUsed")
+    if (lastUsed === userProfileName) {
+        localStorage.removeItem(gamepadVisualizationProfiles + "-lastUsed")
+    }
+}
+
 
 /**
  * @param {Gamepad} gamepad Gamepad to add
@@ -64,11 +186,11 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
     htmlGamepadVisualizationProfile.appendChild(document.createTextNode("visualization profile: " + visualizationProfile.profileName))
     htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfile)
 
-    const lastUseProfileOfVisualizationProfile = localStorage.getItem(`last-user-profile-${visualizationProfile.profileName}`)
-    if (lastUseProfileOfVisualizationProfile) {
-        const savedObject = JSON.parse(localStorage.getItem(lastUseProfileOfVisualizationProfile))
-        for (const key of Object.keys(savedObject)) {
-            userProfile[key] = savedObject[key]
+    const lastUseProfileOfVisualizationProfile = localStorage.getItem(`gamepadVisualizationUserProfiles-${visualizationProfile.profileName}-lastUsed`)
+    const existingUserProfile = getLocalStorageGamepadVisualizationUserProfile(visualizationProfile, lastUseProfileOfVisualizationProfile)
+    if (existingUserProfile !== undefined) {
+        for (const key of Object.keys(existingUserProfile)) {
+            userProfile[key] = existingUserProfile[key]
         }
     }
 
@@ -103,14 +225,12 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
         }
 
         htmlGamepadVisualizationProfileOption.addEventListener("change", () => {
+            if (userProfile.name === undefined) {
+                userProfile.name = "No name"
+            }
             userProfile[visualizationProfileOption.id] = (visualizationProfileOption.inputType === "CHECKBOX")
                 ? htmlGamepadVisualizationProfileOption.checked : htmlGamepadVisualizationProfileOption.value
-            /** @type {HTMLInputElement} */
-            // @ts-ignore
-            const profileOptionName = document.getElementById(`controller-${gamepad.index}-${gamepad.id}-${
-                visualizationProfile.profileName}-name`)
-            localStorage.setItem(`${gamepad.id}-profile-${profileOptionName.value}`, JSON.stringify(userProfile))
-            localStorage.setItem(`last-user-profile-${visualizationProfile.profileName}`, `${gamepad.id}-profile-${profileOptionName.value}`)
+            addOrUpdateLocalStorageGamepadVisualizationUserProfile(visualizationProfile, userProfile)
             globalForceRedraw = true
         })
         htmlGamepadVisualizationProfileOption.alt = visualizationProfileOption.description
@@ -123,17 +243,10 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
     htmlResetVisualizationProfileOptions.type = "button"
     htmlResetVisualizationProfileOptions.value = "Reset user profile options"
     htmlResetVisualizationProfileOptions.addEventListener("click", () => {
-        /** @type {HTMLInputElement} */
-        // @ts-ignore
-        const profileOptionName = document.getElementById(`controller-${gamepad.index}-${gamepad.id}-${
-            visualizationProfile.profileName}-name`)
+        removeLocalStorageGamepadVisualizationUserProfile(visualizationProfile, userProfile)
         for (const key of Object.keys(userProfile)) {
-            if (key !== "drawAlphaMask") {
-                delete userProfile[key]
-            }
+            delete userProfile[key]
         }
-        localStorage.removeItem(`${gamepad.id}-profile-${profileOptionName.value}`)
-        localStorage.removeItem(`last-user-profile-${visualizationProfile.profileName}`)
     })
     htmlLiElementGamepad.appendChild(htmlResetVisualizationProfileOptions)
 
@@ -356,69 +469,58 @@ const update = timeDelta => {
     return true
 }
 
+const globalGamepadDrawPadding = 20
+
 /**
- * Draw a frame
- * @param {CanvasRenderingContext2D} ctx
- * @param {Map<number, {gamepad: Gamepad;visualizationProfile: GamepadVisualizationProfile;userProfile: any}>} gamepads Gamepads that should be drawn
+ * Draw all gamepads
+ * @param {CanvasRenderingContext2D} ctx The canvas rendering context which should be used to draw
+ * @param {GamepadInfoMap} gamepads The container that contains all gamepad information
+ * @typedef {{drawAlphaMask?: boolean}} GlobalOptions
+ * @param {GlobalOptions} options Additional global options
  */
-// @ts-ignore
 const drawGamepads = (ctx, gamepads, options) => {
+    // If multiple gamepads calculate information for their draw layout
     let heightOfAllGamepads
     let widthOfAllGamepads
-    let gamePadSizes = []
-    let gamePadPadding = []
-    const padding = 20
+    const gamePadSizes = []
+    const gamePadPadding = []
     if (gamepads.size >= 1) {
-        heightOfAllGamepads = padding * (gamepads.size - 1)
-        widthOfAllGamepads = padding * (gamepads.size - 1)
+        heightOfAllGamepads = globalGamepadDrawPadding * (gamepads.size - 1)
+        widthOfAllGamepads = globalGamepadDrawPadding * (gamepads.size - 1)
         for (const [_, gamepadInfo] of gamepads) {
             heightOfAllGamepads += gamepadInfo.visualizationProfile.getDrawSize().height
             widthOfAllGamepads += gamepadInfo.visualizationProfile.getDrawSize().width
             gamePadSizes.push(gamepadInfo.visualizationProfile.getDrawSize())
-            gamePadPadding.push(gamePadPadding.length === 0 ? 0 : gamePadPadding.slice(-1)[0] + padding)
+            gamePadPadding.push(gamePadPadding.length === 0 ? 0 : gamePadPadding.slice(-1)[0] + globalGamepadDrawPadding)
         }
-    } else {
-        return
     }
+
     for (const [gamepadIndex, gamepadInfo] of gamepads.entries()) {
         let gamepadX
         let gamepadY
-        let scale = 1.0
-        const verticalPresentation = ctx.canvas.height > ctx.canvas.width
 
-        if (gamepads.size === 1) {
-            // When only one center it
-            gamepadX = ctx.canvas.width / 2
-            gamepadY = ctx.canvas.height / 2
-        } else {
-            // Determine if vertical or horizontal presentation
-            if (verticalPresentation) {
+        // When only one gamepad center it
+        gamepadX = ctx.canvas.width / 2
+        gamepadY = ctx.canvas.height / 2
+
+        // If multiple gamepads determine if vertical or horizontal rendering based on what is larger
+        if (gamepads.size !== 1) {
+            if (ctx.canvas.height > ctx.canvas.width) {
                 gamepadY = ((ctx.canvas.height - heightOfAllGamepads) / 2) + // upper offset to controllers
                     gamePadSizes.slice(0, gamepadIndex).reduce((a, b) => a + b.height, 0) + // controllers above
                     gamePadPadding[gamepadIndex] + // spacing between controllers above
-                    gamePadSizes[gamepadIndex].height / 2 // half of the controller size
-                gamepadX = ctx.canvas.width / 2
+                    gamePadSizes[gamepadIndex].height / 2 // half of the controller height
             } else {
                 gamepadX = ((ctx.canvas.width - widthOfAllGamepads) / 2) + // left offset to controllers
-                    gamePadSizes.slice(0, gamepadIndex).reduce((a, b) => a + b.width, 0) + // controllers above
-                    gamePadPadding[gamepadIndex] + // spacing between controllers above
-                    gamePadSizes[gamepadIndex].width / 2 // half of the controller size
-                gamepadY = ctx.canvas.height / 2
+                    gamePadSizes.slice(0, gamepadIndex).reduce((a, b) => a + b.width, 0) + // controllers left
+                    gamePadPadding[gamepadIndex] + // spacing between controllers left
+                    gamePadSizes[gamepadIndex].width / 2 // half of the controller width
             }
         }
-        if (verticalPresentation) {
-            scale = gamepadInfo.visualizationProfile.getDrawSize().height / (ctx.canvas.height * 0.9)
-        } else {
-            scale = gamepadInfo.visualizationProfile.getDrawSize().width / (ctx.canvas.width * 0.9)
-        }
-        gamepadInfo.visualizationProfile.draw(globalCtx, gamepadX, gamepadY, gamepadInfo.gamepad,
+        gamepadInfo.visualizationProfile.draw(ctx, gamepadX, gamepadY, gamepadInfo.gamepad,
             { ...options, ...gamepadInfo.userProfile })
     }
 }
-
-let globalOptionDrawAlphaMask = false
-let globalOptionBackgroundColor = "#DCDCDC"
-let globalForceRedraw = true
 
 /**
  * Draw a frame
@@ -518,15 +620,24 @@ window.addEventListener('resize', () => {
     globalForceRedraw = true
 })
 
-const initializeOptions = () => {
-    globalOptionBackgroundColor = "#DCDCDC"
-    globalOptionDrawAlphaMask = false
-    globalDebug = false
+/**
+ * Setup global options
+ */
+const initializeGlobalOptions = () => {
+    globalOptionBackgroundColor = checkAndSetLocalStorageForId("backgroundColor", "#DCDCDC")
+    globalOptionDrawAlphaMask = checkAndSetLocalStorageForId("drawAlphaMask", false, {
+        jsonParseLocalStorageValue: true,
+        jsonStringifyDefaultValue: true
+    })
+    globalDebug = checkAndSetLocalStorageForId("debug", false, {
+        jsonParseLocalStorageValue: true,
+        jsonStringifyDefaultValue: true
+    })
 }
 
 const createOptionsInput = () => {
     // Set default options
-    initializeOptions()
+    initializeGlobalOptions()
 
     /** @type {HTMLInputElement} */
     // @ts-ignore
@@ -590,7 +701,7 @@ const createOptionsInput = () => {
         // Clear all customized options
         localStorage.clear()
         // Set default options
-        initializeOptions()
+        initializeGlobalOptions()
         // Force redraw of canvas
         globalForceRedraw = true
     })
