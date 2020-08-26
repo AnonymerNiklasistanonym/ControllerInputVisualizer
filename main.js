@@ -446,10 +446,8 @@ const draw = (ctx) => {
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         ctx.fillStyle = "rgba(255,255,255,0.35)"
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-        console.log("draw empty canvas")
         const fontSize = Math.floor(Math.min(50, Math.min(ctx.canvas.width, ctx.canvas.height) / 10))
         ctx.font = `${fontSize}px Helvetica`
-        console.log(fontSize, ctx.font)
         ctx.fillStyle = "black"
         const textConnectGamepad = "Connect a\ngamepad and\npress any\nbutton"
         const textConnectGamepadParts = textConnectGamepad.split("\n")
@@ -608,24 +606,6 @@ window.addEventListener('load', () => {
     initializeCanvas()
     createOptionsInput()
 
-    // Add options
-    const triggerColorDialog = () => new Promise((resolve) => {
-        console.log("trigger color dialog")
-        const colorInput = document.createElement("input")
-        colorInput.id = "colorDialogID"
-        colorInput.type = "color"
-        colorInput.style.opacity = "0"
-        colorInput.style.position = "absolute"
-        colorInput.addEventListener("change", () => {
-            resolve(colorInput.value)
-        })
-        document.body.appendChild(colorInput)
-
-    })
-
     // Start render loop
     globalAnimationFrameRequest = window.requestAnimationFrame(loop)
-
-    triggerColorDialog().then(console.log)
-
 })
