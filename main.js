@@ -125,7 +125,7 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
  */
 const removeGamepadListElement = (gamepad) => {
     const htmlGamepad = document.getElementById(`controller-${gamepad.index}-${gamepad.id}`)
-    document.body.removeChild(htmlGamepad)
+    htmlGamepad.parentElement.removeChild(htmlGamepad)
 }
 
 /**
@@ -294,16 +294,36 @@ const update = timeDelta => {
 
 /**
  * Draw a frame
+ * @param {CanvasRenderingContext2D} ctx
  * @param {{ gamepad: Gamepad, visualizationProfile: GamepadVisualizationProfile }} gamepadInfo Gamepad that should be drawn
  * @param {number} gamepadIndex The index of the gamepad in relation to all connected gamepads
  * @param {number} gamepadCount The number of connected gamepads
  */
 // @ts-ignore
-const drawGamepad = (gamepadInfo, gamepadIndex, gamepadCount, options) => {
-    const startY = 10 + (globalDebug ? 50 : 0)
-    const startX = 90 + (500 * gamepadIndex)
+const drawGamepad = (ctx, gamepadInfo, gamepadIndex, gamepadCount, options) => {
+    let gamepadX
+    let gamepadY
+    if (gamepadCount === 1) {
+        gamepadX = ctx.canvas.width / 2
+        gamepadY = ctx.canvas.height / 2
+    } else {
+        // Determine if vertical or horizontal presentation
+        const verticalPresentation = ctx.canvas.height > ctx.canvas.width
+        const padding = 20
+        if (verticalPresentation) {
+            const heightOfAllGamepads = gamepadCount * gamepadInfo.visualizationProfile.getDrawSize().height
+                + (gamepadCount - 1) * padding
+            gamepadX = ctx.canvas.width / 2
+            gamepadY = (ctx.canvas.height - heightOfAllGamepads + (heightOfAllGamepads / gamepadCount * gamepadIndex)) + (gamepadInfo.visualizationProfile.getDrawSize().height / 4)
+        } else {
+            const widthOfAllGamepads = gamepadCount * gamepadInfo.visualizationProfile.getDrawSize().width
+                + (gamepadCount - 1) * padding
+            gamepadX = (ctx.canvas.width - widthOfAllGamepads + (widthOfAllGamepads / gamepadCount * gamepadIndex)) + (gamepadInfo.visualizationProfile.getDrawSize().width / 4)
+            gamepadY = ctx.canvas.height / 2
+        }
+    }
 
-    gamepadInfo.visualizationProfile.draw(globalCtx, startX, startY, gamepadInfo.gamepad, options)
+    gamepadInfo.visualizationProfile.draw(globalCtx, gamepadX, gamepadY, gamepadInfo.gamepad, options)
 }
 
 let globalOptionDrawAlphaMask = false
@@ -334,7 +354,7 @@ const draw = (ctx) => {
         ctx.fillStyle = globalOptionDrawAlphaMask === true ? "black" : globalOptionBackgroundColor
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         for (const [gamepadIndex, gamepadInfo] of globalGamepads.entries()) {
-            drawGamepad(gamepadInfo, gamepadIndex, globalGamepads.size, options)
+            drawGamepad(ctx, gamepadInfo, gamepadIndex, globalGamepads.size, options)
         }
     } else {
         ctx.fillStyle = globalOptionBackgroundColor

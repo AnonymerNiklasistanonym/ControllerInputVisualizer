@@ -10,7 +10,7 @@ class GamepadVisualizationProfile {
      * @returns {boolean}
      */
     static gamepadIsSupported(gamepad) {
-        throw Error("Not implemented")
+        throw Error("Method not implemented.")
     }
     /**
      * Check if a gamepad can be supported
@@ -18,7 +18,7 @@ class GamepadVisualizationProfile {
      * @returns {boolean}
      */
     static gamepadCanBeSupported(gamepad) {
-        throw Error("Not implemented")
+        throw Error("Method not implemented.")
     }
     /**
      * Draw a gamepad
@@ -29,7 +29,14 @@ class GamepadVisualizationProfile {
      * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
      */
     draw(ctx, x, y, gamepad, options = {}) {
-        throw Error("Not implemented")
+        throw Error("Method not implemented.")
+    }
+    /**
+     * Get the draw size of the gamepad if it would be drawn
+     * @returns {{width: number;height: number}}
+     */
+    getDrawSize() {
+        throw Error("Method not implemented.")
     }
     /**
      * Get the options of the visualization profile
@@ -48,7 +55,7 @@ class GamepadVisualizationProfile {
      * @returns {{buttons: string[], axes: string[]}}
      */
     getMapping() {
-        throw new Error("Method not implemented.")
+        throw Error("Method not implemented.")
     }
 }
 
@@ -283,6 +290,17 @@ const drawGamepadButtonTop = (ctx, x, y, buttonDirection = "LEFT", pressed = und
         globalGamepadButtonInfoTop.pathWidth, globalGamepadButtonInfoTop.additionalHeight + (pressed ? 0 : globalGamepadButtonInfoTop.pressHeight))
 }
 
+const globalGamepadButtonInfoTrigger = Object.freeze({
+    width: 25,
+    pressDepth: 35,
+    baseDepth: 25
+})
+
+const globalGamepadButtonSizeTrigger = Object.freeze({
+    width: globalGamepadButtonInfoTrigger.width,
+    height: globalGamepadButtonInfoTrigger.baseDepth + globalGamepadButtonInfoTrigger.pressDepth
+})
+
 /**
  * Draw a button of a gamepad
  * @param {CanvasRenderingContext2D} ctx
@@ -296,16 +314,18 @@ const drawGamepadButtonTrigger = (ctx, x, y, pressedValue = 0, options = {}) => 
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
-        // ctx.strokeRect(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2,
-        //     globalGamepadButtonSizeTop.width, globalGamepadButtonSizeTop.height)
+        ctx.strokeRect(x - globalGamepadButtonSizeTrigger.width / 2, y - globalGamepadButtonSizeTrigger.height / 2,
+            globalGamepadButtonSizeTrigger.width, globalGamepadButtonSizeTrigger.height)
     }
     ctx.fillStyle = options.drawAlphaMask === true ? "white" : "#616161"
-    const width = 25
-    const pressDepth = 35
-    const baseDepth = 25
 
-    ctx.fillRect(x - width / 2, y - (pressDepth + baseDepth) / 2 + (pressDepth * pressedValue), width, baseDepth + (pressDepth * (1 - pressedValue)))
+    ctx.fillRect(x - globalGamepadButtonInfoTrigger.width / 2, y - (globalGamepadButtonInfoTrigger.pressDepth + globalGamepadButtonInfoTrigger.baseDepth) / 2 + (globalGamepadButtonInfoTrigger.pressDepth * pressedValue), globalGamepadButtonInfoTrigger.width, globalGamepadButtonInfoTrigger.baseDepth + (globalGamepadButtonInfoTrigger.pressDepth * (1 - pressedValue)))
 }
+
+const globalGamepadCaseSize = Object.freeze({
+    width: 558,
+    height: 335
+})
 
 /**
  * Draw a button of a gamepad
@@ -319,17 +339,23 @@ const drawGamepadCase = (ctx, x, y, options = {}) => {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
-        // ctx.strokeRect(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2,
-        //    globalGamepadButtonSizeTop.width, globalGamepadButtonSizeTop.height)
+        ctx.strokeRect(x - globalGamepadCaseSize.width / 2, y - globalGamepadCaseSize.height / 2,
+            globalGamepadCaseSize.width, globalGamepadCaseSize.height)
     }
     ctx.fillStyle = options.drawAlphaMask === true ? "white" : "black"
 
-    ctx.translate(x, y)
+    ctx.translate(x - globalGamepadCaseSize.width / 2, y - globalGamepadCaseSize.height / 2)
     ctx.scale(2.25, 2.25)
     ctx.fill(new Path2D("M 158.75,-3.3333336e-7 C 188.1297,1.2619967 200.15153,6.9023647 211.66666,13.229168 c 7.97865,4.807494 12.50223,13.639725 15.875,23.812499 6.28144,22.082684 18.31653,45.56543 19.84375,66.145833 0.87505,12.34553 5.34551,42.75628 -23.8125,46.30208 -5.45657,-0.78677 -11.52732,-6.52704 -17.19791,-11.90625 -10.13244,-10.00018 -15.82707,-23.03864 -39.6875,-29.10416 H 124.35416 V -3.3333336e-7 Z m -68.791666,0 C 60.578632,1.2619967 48.556805,6.9023647 37.041667,13.229167 29.063019,18.036661 24.539443,26.868892 21.166667,37.041666 14.885229,59.124349 2.8501433,82.607102 1.3229183,103.18751 c -0.87504897,12.34553 -5.345502,42.75628 23.8124987,46.30208 5.456574,-0.78677 11.527325,-6.52704 17.197917,-11.90625 10.132433,-10.00019 15.827062,-23.03864 39.687499,-29.10417 H 124.35417 V -3.3333336e-7 Z"))
     ctx.scale(1 / 2.25, 1 / 2.25)
-    ctx.translate(-x, -y)
+    ctx.translate(-x + globalGamepadCaseSize.width / 2, -y + globalGamepadCaseSize.height / 2)
 }
+
+
+const globalXboxGamepadSize = Object.freeze({
+    width: globalGamepadCaseSize.width,
+    height: globalGamepadCaseSize.height + (globalGamepadButtonSizeTrigger.height * 0.9)
+})
 
 /**
  * Draw Xbox gamepad
@@ -341,6 +367,16 @@ const drawGamepadCase = (ctx, x, y, options = {}) => {
  * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
  */
 const drawXboxGamepad = (mapping, ctx, x, y, gamepad, options = {}) => {
+    if (globalDebug) {
+        // Draw object boundaries
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x -  globalXboxGamepadSize.width / 2, y - globalXboxGamepadSize.height / 2,
+            globalXboxGamepadSize.width, globalXboxGamepadSize.height)
+    }
+
+    x -= globalXboxGamepadSize.width / 2
+    y -= globalXboxGamepadSize.height / 2
 
     let startIndexButtonAxes = 10
     let startIndexAxisLeft = 0
@@ -382,30 +418,49 @@ const drawXboxGamepad = (mapping, ctx, x, y, gamepad, options = {}) => {
         }
     }
 
-    drawGamepadButtonTrigger(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
+    drawGamepadButtonTrigger(ctx,
+        x + (globalGamepadCaseSize.width / 5 * 1) + globalGamepadButtonSizeTrigger.width / 2,
+        y + globalGamepadButtonSizeTrigger.height / 2,
         mapping === "FIREFOX" ? ((gamepad.axes[2] + 1) / 2) : gamepad.buttons[6].value, options)
-    drawGamepadButtonTrigger(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
+    drawGamepadButtonTrigger(ctx,
+        x + (globalGamepadCaseSize.width / 5 * 4) - globalGamepadButtonSizeTrigger.width / 2,
+        y + globalGamepadButtonSizeTrigger.height / 2,
         mapping === "FIREFOX" ? ((gamepad.axes[5] + 1) / 2) : gamepad.buttons[7].value, options)
 
-    drawGamepadButtonTop(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2,
+    drawGamepadButtonTop(ctx,
+        x + (globalGamepadCaseSize.width / 20 * 3) + globalGamepadButtonSizeTop.width / 2,
+        y + globalGamepadButtonSizeTop.height / 2 + globalGamepadButtonSizeTrigger.height * 0.55,
         "LEFT", gamepad.buttons[4].value > 0, options)
-    drawGamepadButtonTop(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2,
+    drawGamepadButtonTop(ctx,
+        x + (globalGamepadCaseSize.width / 20 * 17) - globalGamepadButtonSizeTop.width / 2,
+        y + globalGamepadButtonSizeTop.height / 2 + globalGamepadButtonSizeTrigger.height * 0.55,
         "RIGHT", gamepad.buttons[5].value > 0, options)
 
-    drawGamepadCase(ctx, x - 86, y + 36, options)
+    drawGamepadCase(ctx,
+        x + globalGamepadCaseSize.width / 2,
+        y + globalGamepadCaseSize.height / 2 + globalGamepadButtonSizeTrigger.height * 0.9,
+        options)
 
-    drawGamepadButtonGroupXboxABXY(ctx, x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 270,
+    drawGamepadButtonGroupXboxABXY(ctx,
+        x + (globalGamepadCaseSize.width / 10 * 8.25) - globalGamepadButtonSizeGroupXboxABXY.width / 2,
         y + globalGamepadButtonSizeGroupXboxABXY.height / 2 + 70,
         gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3], options)
 
-    drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 + 75,
-        gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0, options)
+    drawGamepadButtonAxis(ctx,
+        x + (globalGamepadCaseSize.width / 10 * 1.75) + globalGamepadButtonSizeAxis.width / 2,
+        y + globalGamepadButtonSizeAxis.height / 2 + 75,
+        gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1],
+        gamepad.buttons[startIndexButtonAxes].value > 0, options)
 
-    drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 210, y + globalGamepadButtonSizeAxis.height / 2 + 170,
+    drawGamepadButtonAxis(ctx,
+        x + (globalGamepadCaseSize.width / 10 * 7) - globalGamepadButtonSizeAxis.width / 2,
+        y + globalGamepadButtonSizeAxis.height / 2 + 170,
         gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0, options)
 
 
-    drawGamepadButtonPlus(ctx, x + globalGamepadButtonSizePlus.width / 2 + 70, y + globalGamepadButtonSizePlus.height / 2 + 175,
+    drawGamepadButtonPlus(ctx,
+        x + (globalGamepadCaseSize.width / 10 * 3) + globalGamepadButtonSizePlus.width / 2,
+        y + globalGamepadButtonSizePlus.height / 2 + 175,
         pressDirectionVertical, pressDirectionHorizontal, options)
 }
 
@@ -489,6 +544,13 @@ class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
             ]
         }
     }
+    /**
+     * Get the draw size of the gamepad if it would be drawn
+     * @returns {{width: number;height: number}}
+     */
+    getDrawSize() {
+        return globalXboxGamepadSize
+    }
 }
 
 class UnknownController extends GamepadVisualizationProfile {
@@ -541,6 +603,13 @@ class UnknownController extends GamepadVisualizationProfile {
             buttons: Array(100).fill("Unknown")
         }
     }
+    /**
+     * Get the draw size of the gamepad if it would be drawn
+     * @returns {{width: number;height: number}}
+     */
+    getDrawSize() {
+        return globalGamepadCaseSize
+    }
 }
 
 class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
@@ -548,7 +617,7 @@ class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
      * The name of the visualization profile
      * @type {string}
      */
-    profileName = undefined
+    profileName = "XBoxOne360ControllerFirefox"
     /**
      * Check if a gamepad is supported
      * @param {Gamepad} gamepad
@@ -606,5 +675,12 @@ class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
                 "LSB", "RSB"
             ]
         }
+    }
+    /**
+     * Get the draw size of the gamepad if it would be drawn
+     * @returns {{width: number;height: number}}
+     */
+    getDrawSize() {
+        return globalXboxGamepadSize
     }
 }
