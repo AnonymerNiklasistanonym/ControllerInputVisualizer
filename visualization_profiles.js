@@ -326,6 +326,81 @@ const drawGamepadButtonTrigger = (ctx, x, y, pressedValue = 0, options = {}) => 
     ctx.fillRect(x - globalGamepadButtonInfoTrigger.width / 2, y - (globalGamepadButtonInfoTrigger.pressDepth + globalGamepadButtonInfoTrigger.baseDepth) / 2 + (globalGamepadButtonInfoTrigger.pressDepth * pressedValue), globalGamepadButtonInfoTrigger.width, globalGamepadButtonInfoTrigger.baseDepth + (globalGamepadButtonInfoTrigger.pressDepth * (1 - pressedValue)))
 }
 
+const globalGamepadButtonSizeBig = Object.freeze({
+    width: 50,
+    height: 50
+})
+
+/**
+ * Draw a big button of gamepad
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {boolean} pressed Button is pressed indicator
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
+ */
+const drawGamepadBigButton = (ctx, x, y, pressed = false, options = {}) => {
+    if (globalDebug) {
+        // Draw object boundaries
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 2;
+        ctx.beginPath()
+        ctx.arc(x, y, 5, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.strokeRect(x - globalGamepadButtonSizeBig.width / 2, y - globalGamepadButtonSizeBig.height / 2,
+            globalGamepadButtonSizeBig.width, globalGamepadButtonSizeBig.height)
+    }
+    ctx.beginPath()
+    ctx.arc(x, y, 25, 0, 2 * Math.PI);
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" :
+        (options.bigxColor !== undefined ? options.bigxColor : "#616161")
+    ctx.fill()
+    if (pressed) {
+        ctx.beginPath()
+        ctx.arc(x, y, 25, 0, 2 * Math.PI);
+        ctx.fillStyle = options.drawAlphaMask === true ? "white" : "rgba(0,0,0,0.5)"
+        ctx.fill()
+    }
+}
+
+const globalGamepadButtonSizeSmall = Object.freeze({
+    width: 25,
+    height: 25
+})
+
+/**
+ * Draw a small button of gamepad
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x X coordinate
+ * @param {number} y Y coordinate
+ * @param {"LEFT"|"RIGHT"} buttonDirection The direction of the button
+ * @param {boolean} pressed Button is pressed indicator
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
+ */
+const drawGamepadSmallButton = (ctx, x, y, buttonDirection = "LEFT", pressed = false, options = {}) => {
+    if (globalDebug) {
+        // Draw object boundaries
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 2;
+        ctx.beginPath()
+        ctx.arc(x, y, 5, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.strokeRect(x - globalGamepadButtonSizeBig.width / 2, y - globalGamepadButtonSizeBig.height / 2,
+            globalGamepadButtonSizeBig.width, globalGamepadButtonSizeBig.height)
+    }
+    ctx.beginPath()
+    ctx.arc(x, y, 25 / 2, 0, 2 * Math.PI);
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" :
+        (options.startbackColor !== undefined ? options.startbackColor : "#616161")
+    ctx.fill()
+    if (pressed) {
+        ctx.beginPath()
+        ctx.arc(x, y, 25 / 2, 0, 2 * Math.PI);
+        ctx.fillStyle = options.drawAlphaMask === true ? "white" : "rgba(0,0,0,0.5)"
+        ctx.fill()
+    }
+}
+
 const globalGamepadCaseSize = Object.freeze({
     width: 558,
     height: 335
@@ -376,7 +451,7 @@ const drawXboxGamepad = (mapping, ctx, x, y, gamepad, options = {}) => {
         // Draw object boundaries
         ctx.strokeStyle = "black"
         ctx.lineWidth = 2;
-        ctx.strokeRect(x -  globalXboxGamepadSize.width / 2, y - globalXboxGamepadSize.height / 2,
+        ctx.strokeRect(x - globalXboxGamepadSize.width / 2, y - globalXboxGamepadSize.height / 2,
             globalXboxGamepadSize.width, globalXboxGamepadSize.height)
     }
 
@@ -386,10 +461,14 @@ const drawXboxGamepad = (mapping, ctx, x, y, gamepad, options = {}) => {
     let startIndexButtonAxes = 10
     let startIndexAxisLeft = 0
     let startIndexAxisRight = 2
+    let startIndexStartBack = 8
+    let startIndexBigX = 16
 
     if (mapping === "FIREFOX") {
         startIndexButtonAxes = 9
         startIndexAxisRight = 3
+        startIndexStartBack = 6
+        startIndexBigX = 8
     }
 
     /** @type {"LEFT" | "RIGHT"} */
@@ -462,11 +541,26 @@ const drawXboxGamepad = (mapping, ctx, x, y, gamepad, options = {}) => {
         y + globalGamepadButtonSizeAxis.height / 2 + 170,
         gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0, options)
 
-
     drawGamepadButtonPlus(ctx,
         x + (globalGamepadCaseSize.width / 10 * 3) + globalGamepadButtonSizePlus.width / 2,
         y + globalGamepadButtonSizePlus.height / 2 + 175,
         pressDirectionVertical, pressDirectionHorizontal, options)
+
+            // 8,9 - 6,7 firefox
+    drawGamepadSmallButton(ctx,
+        x + (globalGamepadCaseSize.width / 10 * 4) + globalGamepadButtonSizeSmall.width / 2,
+        y + globalGamepadButtonSizeSmall.height / 2 + 105,
+        "LEFT", gamepad.buttons[startIndexStartBack].value > 0, options)
+
+    drawGamepadSmallButton(ctx,
+        x + (globalGamepadCaseSize.width / 10 * 6) - globalGamepadButtonSizeSmall.width / 2,
+        y + globalGamepadButtonSizeSmall.height / 2 + 105,
+        "LEFT", gamepad.buttons[startIndexStartBack + 1].value > 0, options)
+
+    drawGamepadBigButton(ctx,
+        x + (globalGamepadCaseSize.width / 2) + 0,
+        y + globalGamepadButtonSizeBig.height / 2 + 65,
+        gamepad.buttons[startIndexBigX].value > 0, options)
 
     if (options.showName === true) {
         ctx.font = "20px Helvetica"
@@ -531,6 +625,14 @@ class XBoxOne360Controller extends GamepadVisualizationProfile {
             id: "rsblsbColor",
             inputType: "COLOR",
             name: "RSB and LSB input color"
+        }, {
+            id: "bigxColor",
+            inputType: "COLOR",
+            name: "Big X input color"
+        }, {
+            id: "startbackColor",
+            inputType: "COLOR",
+            name: "Start and Back input color"
         }]
     }
     /**
