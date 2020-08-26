@@ -82,7 +82,7 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
         const htmlGamepadButton = document.createElement("li")
         htmlGamepadButton.textContent = `Button ${buttonId} (->${
             visualizationProfile.getMapping().buttons[buttonId]
-        }):`
+            }):`
         const htmlGamepadButtonInfo = document.createElement("span")
         htmlGamepadButtonInfo.textContent = `${button.value} (pressed: ${button.pressed}, touched: ${button.touched})`
         htmlGamepadButton.appendChild(htmlGamepadButtonInfo)
@@ -102,7 +102,7 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
         const htmlGamepadAxis = document.createElement("li")
         htmlGamepadAxis.textContent = `Axis ${axisId} (->${
             visualizationProfile.getMapping().axes[axisId]
-        }): `
+            }): `
         const htmlGamepadAxisInfo = document.createElement("span")
         htmlGamepadAxisInfo.textContent = `${axis}`
         htmlGamepadAxis.appendChild(htmlGamepadAxisInfo)
@@ -157,8 +157,8 @@ const updateGamepadListElement = (gamepad) => {
     for (const [axisId, axis] of gamepad.axes.entries()) {
         const htmlAxisProgress = htmlAxisProgressList[axisId]
         const htmlAxis = htmlAxisList[axisId]
-            // Can be temporarily undefined!
-            if (htmlAxis && htmlAxisProgress) {
+        // Can be temporarily undefined!
+        if (htmlAxis && htmlAxisProgress) {
             htmlAxis.innerText = `${axis}`
             htmlAxisProgress.value = axis + 1
         }
@@ -295,35 +295,57 @@ const update = timeDelta => {
 /**
  * Draw a frame
  * @param {CanvasRenderingContext2D} ctx
- * @param {{ gamepad: Gamepad, visualizationProfile: GamepadVisualizationProfile }} gamepadInfo Gamepad that should be drawn
- * @param {number} gamepadIndex The index of the gamepad in relation to all connected gamepads
- * @param {number} gamepadCount The number of connected gamepads
+ * @param {Map<number,{ gamepad: Gamepad, visualizationProfile: GamepadVisualizationProfile }>} gamepads Gamepads that should be drawn
  */
 // @ts-ignore
-const drawGamepad = (ctx, gamepadInfo, gamepadIndex, gamepadCount, options) => {
-    let gamepadX
-    let gamepadY
-    if (gamepadCount === 1) {
-        gamepadX = ctx.canvas.width / 2
-        gamepadY = ctx.canvas.height / 2
-    } else {
-        // Determine if vertical or horizontal presentation
-        const verticalPresentation = ctx.canvas.height > ctx.canvas.width
-        const padding = 20
-        if (verticalPresentation) {
-            const heightOfAllGamepads = gamepadCount * gamepadInfo.visualizationProfile.getDrawSize().height
-                + (gamepadCount - 1) * padding
-            gamepadX = ctx.canvas.width / 2
-            gamepadY = (ctx.canvas.height - heightOfAllGamepads + (heightOfAllGamepads / gamepadCount * gamepadIndex)) + (gamepadInfo.visualizationProfile.getDrawSize().height / 4)
-        } else {
-            const widthOfAllGamepads = gamepadCount * gamepadInfo.visualizationProfile.getDrawSize().width
-                + (gamepadCount - 1) * padding
-            gamepadX = (ctx.canvas.width - widthOfAllGamepads + (widthOfAllGamepads / gamepadCount * gamepadIndex)) + (gamepadInfo.visualizationProfile.getDrawSize().width / 4)
-            gamepadY = ctx.canvas.height / 2
+const drawGamepads = (ctx, gamepads, options) => {
+    let heightOfAllGamepads
+    let widthOfAllGamepads
+    let gamePadSizes = []
+    let gamePadPadding = []
+    const padding = 20
+    if (gamepads.size === 1) {
+        heightOfAllGamepads = gamepads[0].visualizationProfile.getDrawSize().height
+        widthOfAllGamepads = gamepads[0].visualizationProfile.getDrawSize().width
+    } else if (gamepads.size >= 1) {
+        heightOfAllGamepads = padding * (gamepads.size - 1)
+        widthOfAllGamepads = padding * (gamepads.size - 1)
+        for (const [_, gamepadInfo] of gamepads) {
+            heightOfAllGamepads += gamepadInfo.visualizationProfile.getDrawSize().height
+            widthOfAllGamepads += gamepadInfo.visualizationProfile.getDrawSize().width
+            gamePadSizes.push(gamepadInfo.visualizationProfile.getDrawSize())
+            gamePadPadding.push(gamePadPadding.length === 0 ? 0 : gamePadPadding.slice(-1)[0] + padding)
         }
+    } else {
+        return
     }
+    for (const [gamepadIndex, gamepadInfo] of gamepads.entries()) {
+        let gamepadX
+        let gamepadY
+        if (gamepads.size === 1) {
+            // When only one center it
+            gamepadX = ctx.canvas.width / 2
+            gamepadY = ctx.canvas.height / 2
+        } else {
+            // Determine if vertical or horizontal presentation
+            const verticalPresentation = ctx.canvas.height > ctx.canvas.width
+            if (verticalPresentation) {
+                gamepadY = ((ctx.canvas.height - heightOfAllGamepads) / 2) + // upper offset to controllers
+                    gamePadSizes.slice(0, gamepadIndex).reduce((a, b) => a + b.height, 0) + // controllers above
+                    gamePadPadding[gamepadIndex] + // spacing between controllers above
+                    gamePadSizes[gamepadIndex].height / 2 // half of the controller size
+                gamepadX = ctx.canvas.width / 2
+            } else {
+                gamepadX = ((ctx.canvas.width - widthOfAllGamepads) / 2) + // left offset to controllers
+                    gamePadSizes.slice(0, gamepadIndex).reduce((a, b) => a + b.width, 0) + // controllers above
+                    gamePadPadding[gamepadIndex] + // spacing between controllers above
+                    gamePadSizes[gamepadIndex].width / 2 // half of the controller size
+                gamepadY = ctx.canvas.height / 2
+            }
+        }
 
-    gamepadInfo.visualizationProfile.draw(globalCtx, gamepadX, gamepadY, gamepadInfo.gamepad, options)
+        gamepadInfo.visualizationProfile.draw(globalCtx, gamepadX, gamepadY, gamepadInfo.gamepad, options)
+    }
 }
 
 let globalOptionDrawAlphaMask = false
@@ -353,9 +375,7 @@ const draw = (ctx) => {
         }
         ctx.fillStyle = globalOptionDrawAlphaMask === true ? "black" : globalOptionBackgroundColor
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-        for (const [gamepadIndex, gamepadInfo] of globalGamepads.entries()) {
-            drawGamepad(ctx, gamepadInfo, gamepadIndex, globalGamepads.size, options)
-        }
+        drawGamepads(ctx, globalGamepads, options)
     } else {
         ctx.fillStyle = globalOptionBackgroundColor
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
