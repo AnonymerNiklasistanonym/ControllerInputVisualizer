@@ -169,6 +169,8 @@ const drawGamepadButtonAxis = (ctx, x, y, axisX, axisY, pressed = false, options
     ctx.arc(x, y, (globalGamepadButtonRadiusAxis * 2) * 1.45, 0, 2 * Math.PI)
     if (options.drawAlphaMask === true) {
         ctx.fillStyle = "white"
+    } else if (options.rsblsbColor !== undefined) {
+        ctx.fillStyle = options.rsblsbColor
     } else {
         ctx.fillStyle = ctx.createRadialGradient(x, y, 1, x, y, 55)
         ctx.fillStyle.addColorStop(0, '#C0C0C0')
@@ -233,7 +235,7 @@ const drawGamepadButtonPlus = (ctx, x, y, pressDirectionVertical = undefined, pr
         y + (pressDirectionVertical === "UP" ? - globalGamepadButtonSizePlusTile.width : 0) + (pressDirectionVertical === "DOWN" ? globalGamepadButtonSizePlusTile.width : 0),
         globalGamepadButtonSizePlusTile.width * 2)
     gradient.addColorStop(0, '#606060')
-    gradient.addColorStop(1, '#000000')
+    gradient.addColorStop(1, options.dpadColor !== undefined ? options.dpadColor : '#000000')
     ctx.beginPath()
     ctx.rect(x - (globalGamepadButtonSizePlusTile.width / 2), y - (globalGamepadButtonSizePlusTile.width / 2) - globalGamepadButtonSizePlusTile.width,
         globalGamepadButtonSizePlusTile.width, globalGamepadButtonSizePlusTile.height * 3)
@@ -272,7 +274,8 @@ const drawGamepadButtonTop = (ctx, x, y, buttonDirection = "LEFT", pressed = und
         ctx.strokeRect(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2,
             globalGamepadButtonSizeTop.width, globalGamepadButtonSizeTop.height)
     }
-    ctx.fillStyle = options.drawAlphaMask === true ? "white" : "black"
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" :
+        (options.rblbColor !== undefined ? options.rblbColor : "black")
 
     ctx.translate(x - globalGamepadButtonSizeTop.width / 2, y - globalGamepadButtonSizeTop.height / 2 + (pressed ? globalGamepadButtonInfoTop.pressHeight : 0))
     if (buttonDirection === "RIGHT") {
@@ -317,7 +320,8 @@ const drawGamepadButtonTrigger = (ctx, x, y, pressedValue = 0, options = {}) => 
         ctx.strokeRect(x - globalGamepadButtonSizeTrigger.width / 2, y - globalGamepadButtonSizeTrigger.height / 2,
             globalGamepadButtonSizeTrigger.width, globalGamepadButtonSizeTrigger.height)
     }
-    ctx.fillStyle = options.drawAlphaMask === true ? "white" : "#616161"
+    ctx.fillStyle = options.drawAlphaMask === true ? "white" :
+        (options.rtltColor !== undefined ? options.rtltColor : "#616161")
 
     ctx.fillRect(x - globalGamepadButtonInfoTrigger.width / 2, y - (globalGamepadButtonInfoTrigger.pressDepth + globalGamepadButtonInfoTrigger.baseDepth) / 2 + (globalGamepadButtonInfoTrigger.pressDepth * pressedValue), globalGamepadButtonInfoTrigger.width, globalGamepadButtonInfoTrigger.baseDepth + (globalGamepadButtonInfoTrigger.pressDepth * (1 - pressedValue)))
 }
@@ -342,7 +346,8 @@ const drawGamepadCase = (ctx, x, y, options = {}) => {
         ctx.strokeRect(x - globalGamepadCaseSize.width / 2, y - globalGamepadCaseSize.height / 2,
             globalGamepadCaseSize.width, globalGamepadCaseSize.height)
     }
-    ctx.fillStyle = options.drawAlphaMask === true ? "white" : "black"
+    ctx.fillStyle = options.drawAlphaMask === true ? "white"
+        : (options.caseColor !== undefined ? options.caseColor : "white")
 
     ctx.translate(x - globalGamepadCaseSize.width / 2, y - globalGamepadCaseSize.height / 2)
     ctx.scale(2.25, 2.25)
@@ -462,9 +467,85 @@ const drawXboxGamepad = (mapping, ctx, x, y, gamepad, options = {}) => {
         x + (globalGamepadCaseSize.width / 10 * 3) + globalGamepadButtonSizePlus.width / 2,
         y + globalGamepadButtonSizePlus.height / 2 + 175,
         pressDirectionVertical, pressDirectionHorizontal, options)
+
+    if (options.showName === true) {
+        ctx.font = "20px Helvetica"
+        ctx.fillStyle = options.nameColor !== undefined ? options.nameColor : "black"
+        const textMeasurements = ctx.measureText(options.name)
+        ctx.fillText(options.name, x + globalGamepadCaseSize.width / 2 - textMeasurements.width / 2, y + 20)
+    }
 }
 
-class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
+class XBoxOne360Controller extends GamepadVisualizationProfile {
+    /**
+     * @param {"CHROMIUM"|"FIREFOX"} xboxMapping
+     */
+    constructor(xboxMapping) {
+        super()
+        this.xboxMapping = xboxMapping
+    }
+    /**
+     * Draw a gamepad
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number} x
+     * @param {number} y
+     * @param {Gamepad} gamepad
+     * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
+     */
+    draw(ctx, x, y, gamepad, options = {}) {
+        drawXboxGamepad(this.xboxMapping, ctx, x, y, gamepad, options)
+    }
+    /**
+     * Get the options of the visualization profile
+     * @returns {{name: string, id: string, inputType: "COLOR"|"TEXT"|"CHECKBOX", description?: string}[]}
+     */
+    getOptions() {
+        return [... super.getOptions(), {
+            id: "showName",
+            inputType: "CHECKBOX",
+            name: "Show name",
+            description: "Show profile name on the controller"
+        }, {
+            id: "caseColor",
+            inputType: "COLOR",
+            name: "Case color",
+            description: "Select a color for the controller case"
+        }, {
+            id: "nameColor",
+            inputType: "COLOR",
+            name: "Name color",
+            description: "Select a color for the name if shown"
+        }, {
+            id: "rtltColor",
+            inputType: "COLOR",
+            name: "RR and LR input color"
+        }, {
+            id: "rblbColor",
+            inputType: "COLOR",
+            name: "RB and LB input color"
+        }, {
+            id: "dpadColor",
+            inputType: "COLOR",
+            name: "D-Pad input color"
+        }, {
+            id: "rsblsbColor",
+            inputType: "COLOR",
+            name: "RSB and LSB input color"
+        }]
+    }
+    /**
+     * Get the draw size of the gamepad if it would be drawn
+     * @returns {{width: number;height: number}}
+     */
+    getDrawSize() {
+        return globalXboxGamepadSize
+    }
+}
+
+class XBoxOne360ControllerChromium extends XBoxOne360Controller {
+    constructor() {
+        super("CHROMIUM")
+    }
     /**
      * The name of the visualization profile
      * @type {string}
@@ -494,34 +575,6 @@ class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
         return false
     }
     /**
-     * Draw a gamepad
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {number} x
-     * @param {number} y
-     * @param {Gamepad} gamepad
-     * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
-     */
-    draw(ctx, x, y, gamepad, options = {}) {
-        drawXboxGamepad("CHROMIUM", ctx, x, y, gamepad, options)
-    }
-    /**
-     * Get the options of the visualization profile
-     * @returns {{name: string, id: string, inputType: "COLOR"|"TEXT"|"CHECKBOX", description?: string}[]}
-     */
-    getOptions() {
-        return [... super.getOptions(), {
-            id: "showName",
-            inputType: "CHECKBOX",
-            name: "Show name",
-            description: "Show profile name on the controller"
-        }, {
-            id: "caseColor",
-            inputType: "COLOR",
-            name: "Case color",
-            description: "Select a color for the controller case"
-        }]
-    }
-    /**
      * Get the mapping of the buttons and axes
      * @returns {{buttons: string[], axes: string[]}}
      */
@@ -543,13 +596,6 @@ class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
                 "XBOX"
             ]
         }
-    }
-    /**
-     * Get the draw size of the gamepad if it would be drawn
-     * @returns {{width: number;height: number}}
-     */
-    getDrawSize() {
-        return globalXboxGamepadSize
     }
 }
 
@@ -612,7 +658,10 @@ class UnknownController extends GamepadVisualizationProfile {
     }
 }
 
-class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
+class XBoxOne360ControllerFirefox extends XBoxOne360Controller {
+    constructor() {
+        super("FIREFOX")
+    }
     /**
      * The name of the visualization profile
      * @type {string}
@@ -642,17 +691,6 @@ class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
         return false
     }
     /**
-     * Draw a gamepad
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {number} x
-     * @param {number} y
-     * @param {Gamepad} gamepad
-     * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
-     */
-    draw(ctx, x, y, gamepad, options = {}) {
-        drawXboxGamepad("FIREFOX", ctx, x, y, gamepad, options)
-    }
-    /**
      * Get the mapping of the buttons and axes
      * @returns {{buttons: string[], axes: string[]}}
      */
@@ -675,12 +713,5 @@ class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
                 "LSB", "RSB"
             ]
         }
-    }
-    /**
-     * Get the draw size of the gamepad if it would be drawn
-     * @returns {{width: number;height: number}}
-     */
-    getDrawSize() {
-        return globalXboxGamepadSize
     }
 }

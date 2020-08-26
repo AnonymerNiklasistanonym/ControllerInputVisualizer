@@ -69,9 +69,78 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
     htmlGamepadVisualizationProfile.appendChild(document.createTextNode("visualization profile: " + visualizationProfile.profileName))
     htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfile)
 
-    const htmlUserProfile = document.createElement("p")
-    htmlUserProfile.appendChild(document.createTextNode("user profile: " + userProfile.name))
-    htmlLiElementGamepad.appendChild(htmlUserProfile)
+    const lastUseProfileOfVisualizationProfile = localStorage.getItem(`last-user-profile-${visualizationProfile.profileName}`)
+    if (lastUseProfileOfVisualizationProfile) {
+        const savedObject = JSON.parse(localStorage.getItem(lastUseProfileOfVisualizationProfile))
+        for (const key of Object.keys(savedObject)) {
+            userProfile[key] = savedObject[key]
+        }
+    }
+
+    for (const visualizationProfileOption of visualizationProfile.getOptions()) {
+        const htmlGamepadVisualizationProfile = document.createElement("label")
+        htmlGamepadVisualizationProfile.textContent = visualizationProfileOption.name + ":"
+        htmlGamepadVisualizationProfile.htmlFor = `controller-${gamepad.index}-${gamepad.id}-${
+            visualizationProfile.profileName
+            }-${visualizationProfileOption.id}`
+        htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfile)
+        const htmlGamepadVisualizationProfileOption = document.createElement("input")
+        htmlGamepadVisualizationProfileOption.id = `controller-${gamepad.index}-${gamepad.id}-${
+            visualizationProfile.profileName
+            }-${visualizationProfileOption.id}`
+        if (visualizationProfileOption.inputType === "COLOR") {
+            htmlGamepadVisualizationProfileOption.type = "color"
+            if (userProfile[visualizationProfileOption.id] !== undefined) {
+                htmlGamepadVisualizationProfileOption.value = userProfile[visualizationProfileOption.id]
+            }
+        }
+        if (visualizationProfileOption.inputType === "CHECKBOX") {
+            htmlGamepadVisualizationProfileOption.type = "checkbox"
+            if (userProfile[visualizationProfileOption.id] !== undefined) {
+                htmlGamepadVisualizationProfileOption.checked = userProfile[visualizationProfileOption.id]
+            }
+        }
+        if (visualizationProfileOption.inputType === "TEXT") {
+            htmlGamepadVisualizationProfileOption.type = "text"
+            if (userProfile[visualizationProfileOption.id] !== undefined) {
+                htmlGamepadVisualizationProfileOption.value = userProfile[visualizationProfileOption.id]
+            }
+        }
+
+        htmlGamepadVisualizationProfileOption.addEventListener("change", () => {
+            userProfile[visualizationProfileOption.id] = (visualizationProfileOption.inputType === "CHECKBOX")
+                ? htmlGamepadVisualizationProfileOption.checked : htmlGamepadVisualizationProfileOption.value
+            /** @type {HTMLInputElement} */
+            // @ts-ignore
+            const profileOptionName = document.getElementById(`controller-${gamepad.index}-${gamepad.id}-${
+                visualizationProfile.profileName}-name`)
+            localStorage.setItem(`${gamepad.id}-profile-${profileOptionName.value}`, JSON.stringify(userProfile))
+            localStorage.setItem(`last-user-profile-${visualizationProfile.profileName}`, `${gamepad.id}-profile-${profileOptionName.value}`)
+            globalForceRedraw = true
+        })
+        htmlGamepadVisualizationProfileOption.alt = visualizationProfileOption.description
+        htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfileOption)
+        htmlLiElementGamepad.appendChild(document.createElement("br"))
+    }
+
+    // Reset visualization profile
+    const htmlResetVisualizationProfileOptions = document.createElement("input")
+    htmlResetVisualizationProfileOptions.type = "button"
+    htmlResetVisualizationProfileOptions.value = "Reset user profile options"
+    htmlResetVisualizationProfileOptions.addEventListener("click", () => {
+        /** @type {HTMLInputElement} */
+        // @ts-ignore
+        const profileOptionName = document.getElementById(`controller-${gamepad.index}-${gamepad.id}-${
+            visualizationProfile.profileName}-name`)
+        for (const key of Object.keys(userProfile)) {
+            if (key !== "drawAlphaMask") {
+                delete userProfile[key]
+            }
+        }
+        localStorage.removeItem(`${gamepad.id}-profile-${profileOptionName.value}`)
+        localStorage.removeItem(`last-user-profile-${visualizationProfile.profileName}`)
+    })
+    htmlLiElementGamepad.appendChild(htmlResetVisualizationProfileOptions)
 
     const htmlGamepadTitle = document.createElement("p")
     htmlGamepadTitle.appendChild(document.createTextNode("name: " + gamepad.id))
@@ -295,7 +364,7 @@ const update = timeDelta => {
 /**
  * Draw a frame
  * @param {CanvasRenderingContext2D} ctx
- * @param {Map<number,{ gamepad: Gamepad, visualizationProfile: GamepadVisualizationProfile }>} gamepads Gamepads that should be drawn
+ * @param {Map<number, {gamepad: Gamepad;visualizationProfile: GamepadVisualizationProfile;userProfile: any}>} gamepads Gamepads that should be drawn
  */
 // @ts-ignore
 const drawGamepads = (ctx, gamepads, options) => {
@@ -347,14 +416,14 @@ const drawGamepads = (ctx, gamepads, options) => {
         } else {
             scale = gamepadInfo.visualizationProfile.getDrawSize().width / (ctx.canvas.width * 0.9)
         }
-        console.log(scale)
-        gamepadInfo.visualizationProfile.draw(globalCtx, gamepadX, gamepadY, gamepadInfo.gamepad, options)
+        gamepadInfo.visualizationProfile.draw(globalCtx, gamepadX, gamepadY, gamepadInfo.gamepad,
+            { ...options, ...gamepadInfo.userProfile })
     }
 }
 
 let globalOptionDrawAlphaMask = false
-let globalOptionBackgroundColor = "#F1F1F1"
-let globalForceRedraw = false
+let globalOptionBackgroundColor = "#DCDCDC"
+let globalForceRedraw = true
 
 /**
  * Draw a frame
@@ -363,14 +432,6 @@ let globalForceRedraw = false
 const draw = (ctx) => {
     globalForceRedraw = false
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-
-    // Draw canvas elements
-    if (globalDebug) {
-        ctx.font = "30px Helvetica"
-        ctx.fillStyle = "black"
-        ctx.fillText(globalTimeLastFrame.toString(), 50, 50)
-        ctx.fillText(`fps: ${fps.toPrecision(3)}`, 200, 50)
-    }
 
     if (globalGamepads.size > 0) {
         /** @type {{drawAlphaMask?: boolean, [key: string]: any}} **/
@@ -398,6 +459,13 @@ const draw = (ctx) => {
             ctx.fillText(textConnectGamepadPart, ctx.canvas.width / 2 - textConnectGamepadSize.width / 2, heightCenter + index * (fontSize + 5))
         }
     }
+
+    if (globalDebug) {
+        ctx.font = "30px Helvetica"
+        ctx.fillStyle = "black"
+        ctx.fillText(globalTimeLastFrame.toString(), 50, 50)
+        ctx.fillText(`fps: ${fps.toPrecision(3)}`, 200, 50)
+    }
 }
 
 /**
@@ -416,7 +484,9 @@ const loop = time => {
         window.cancelAnimationFrame(globalAnimationFrameRequest)
     }
     if (!update(deltaTime) && globalForceRedraw === false) {
-        console.log("don't draw because !update(deltaTime)")
+        if (globalDebug) {
+            console.log("don't draw because update has no new information")
+        }
         // If update returned false no new frame needs to be drawn
         window.cancelAnimationFrame(globalAnimationFrameRequest)
         globalAnimationFrameRequest = window.requestAnimationFrame(loop)
@@ -440,7 +510,7 @@ const initializeCanvas = () => {
     globalCtx.canvas.width = Math.floor(window.innerWidth * dpi)
     globalCtx.canvas.height = Math.floor(window.innerHeight * dpi)
 
-    globalCtx.fillStyle = "#F1F1F1"
+    globalCtx.fillStyle = globalOptionBackgroundColor
     globalCtx.fillRect(0, 0, globalCtx.canvas.width, globalCtx.canvas.height)
 }
 
@@ -456,7 +526,7 @@ window.addEventListener('resize', () => {
 })
 
 const initializeOptions = () => {
-    globalOptionBackgroundColor = "#F1F1F1"
+    globalOptionBackgroundColor = "#DCDCDC"
     globalOptionDrawAlphaMask = false
     globalDebug = false
 }
