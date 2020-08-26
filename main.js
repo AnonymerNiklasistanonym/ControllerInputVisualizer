@@ -1,14 +1,12 @@
 /**
  * Container for all currently connected gamepads
- * @type {Map<number, {gamepad: Gamepad;visualizationProfile: GamepadVisualizationProfile;userProfile: any}>}
- * @global
+ * @type {Map<number, {gamepad: Gamepad;visualizationProfile: GamepadVisualizationProfile;userProfile: any;}>}
  */
 const globalGamepads = new Map()
 
 /**
  * The latest ID of the current animation request
  * @type {number}
- * @global
  */
 let globalAnimationFrameRequest
 
@@ -16,7 +14,6 @@ let globalAnimationFrameRequest
  * Indicator if the previous render request rendered already an empty frame
  * (this is used to cancel the rendering if no gamepads are connected)
  * @type {boolean}
- * @global
  */
 let globalEmptyFrameAlreadyRendered
 
@@ -24,14 +21,12 @@ let globalEmptyFrameAlreadyRendered
  * Save the time of the last rendered frame for time deltas between frames
  * (this is used to calculate the delta time between rendering frames)
  * @type {number}
- * @global
  */
 let globalTimeLastFrame
 
 /**
  * The 2D rendering context of the canvas
  * @type {CanvasRenderingContext2D}
- * @global
  */
 let globalCtx
 

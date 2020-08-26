@@ -1,3 +1,6 @@
+/**
+ * Superclass that defines the structure of any gamepad visualization profile
+ */
 class GamepadVisualizationProfile {
     /**
      * The name of the visualization profile
