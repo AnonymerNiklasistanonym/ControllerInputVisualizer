@@ -3,7 +3,7 @@ class GamepadVisualizationProfile {
      * The name of the visualization profile
      * @type {string}
      */
-    static profileName = undefined
+    profileName = undefined
     /**
      * Check if a gamepad is supported
      * @param {Gamepad} gamepad
@@ -28,15 +28,27 @@ class GamepadVisualizationProfile {
      * @param {Gamepad} gamepad
      * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
      */
-    static draw(ctx, x, y, gamepad, options = {}) {
+    draw(ctx, x, y, gamepad, options = {}) {
         throw Error("Not implemented")
     }
     /**
      * Get the options of the visualization profile
-     * @returns {{name: string, id: string, inputType: "COLOR", description?: string}[]}
+     * @returns {{name: string, id: string, inputType: "COLOR"|"TEXT"|"CHECKBOX", description?: string}[]}
      */
-    static getOptions() {
-        return []
+    getOptions() {
+        return [{
+            id: "name",
+            inputType: "TEXT",
+            name: "Controller profile name",
+            description: "Enter a name for the options of this controller"
+        }]
+    }
+    /**
+     * Get the mapping of the buttons and axes
+     * @returns {{buttons: string[], axes: string[]}}
+     */
+    getMapping() {
+        throw new Error("Method not implemented.")
     }
 }
 
@@ -160,19 +172,19 @@ const drawGamepadButtonAxis = (ctx, x, y, axisX, axisY, pressed = false, options
     const middleButtonRadius = (globalGamepadButtonRadiusAxis * 2) * 0.45
     ctx.arc(x + (axisX * middleButtonRadius), y + (axisY * middleButtonRadius),
         globalGamepadButtonRadiusAxis * (pressed ? 2 : 1.75), 0, 2 * Math.PI)
-        if (options.drawAlphaMask === true) {
-            ctx.fillStyle = "white"
-        } else {
-    ctx.fillStyle = ctx.createRadialGradient(
-        x + (axisX * (globalGamepadButtonRadiusAxis * 2) * 0.45),
-        y + (axisY * (globalGamepadButtonRadiusAxis * 2) * 0.45),
-        1, x + (axisX * (globalGamepadButtonRadiusAxis * 2) * 0.45),
-        y + (axisY * (globalGamepadButtonRadiusAxis * 2) * 0.45),
-        55
-    )
-    ctx.fillStyle.addColorStop(0, '#000000')
-    ctx.fillStyle.addColorStop(1, '#404040')
-        }
+    if (options.drawAlphaMask === true) {
+        ctx.fillStyle = "white"
+    } else {
+        ctx.fillStyle = ctx.createRadialGradient(
+            x + (axisX * (globalGamepadButtonRadiusAxis * 2) * 0.45),
+            y + (axisY * (globalGamepadButtonRadiusAxis * 2) * 0.45),
+            1, x + (axisX * (globalGamepadButtonRadiusAxis * 2) * 0.45),
+            y + (axisY * (globalGamepadButtonRadiusAxis * 2) * 0.45),
+            55
+        )
+        ctx.fillStyle.addColorStop(0, '#000000')
+        ctx.fillStyle.addColorStop(1, '#404040')
+    }
     ctx.fill()
 }
 
@@ -319,12 +331,90 @@ const drawGamepadCase = (ctx, x, y, options = {}) => {
     ctx.translate(-x, -y)
 }
 
+/**
+ * Draw Xbox gamepad
+ * @param {"FIREFOX"|"CHROMIUM"} mapping
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {Gamepad} gamepad
+ * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
+ */
+const drawXboxGamepad = (mapping, ctx, x, y, gamepad, options = {}) => {
+
+    let startIndexButtonAxes = 10
+    let startIndexAxisLeft = 0
+    let startIndexAxisRight = 2
+
+    if (mapping === "FIREFOX") {
+        startIndexButtonAxes = 9
+        startIndexAxisRight = 3
+    }
+
+    /** @type {"LEFT" | "RIGHT"} */
+    let pressDirectionHorizontal
+    /** @type {"UP" | "DOWN"} */
+    let pressDirectionVertical
+
+    if (mapping === "FIREFOX") {
+        const startIndexAxisPlus = 6
+        if (gamepad.axes[startIndexAxisPlus] > 0) {
+            pressDirectionHorizontal = "RIGHT"
+        } else if (gamepad.axes[startIndexAxisPlus] < 0) {
+            pressDirectionHorizontal = "LEFT"
+        }
+        if (gamepad.axes[startIndexAxisPlus + 1] > 0) {
+            pressDirectionVertical = "DOWN"
+        } else if (gamepad.axes[startIndexAxisPlus + 1] < 0) {
+            pressDirectionVertical = "UP"
+        }
+    } else {
+        const startIndexButtonPlus = 12
+        if (gamepad.buttons[startIndexButtonPlus].value > 0) {
+            pressDirectionVertical = "UP"
+        } else if (gamepad.buttons[startIndexButtonPlus + 1].value > 0) {
+            pressDirectionVertical = "DOWN"
+        }
+        if (gamepad.buttons[startIndexButtonPlus + 2].value > 0) {
+            pressDirectionHorizontal = "LEFT"
+        } else if (gamepad.buttons[startIndexButtonPlus + 3].value > 0) {
+            pressDirectionHorizontal = "RIGHT"
+        }
+    }
+
+    drawGamepadButtonTrigger(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
+        mapping === "FIREFOX" ? ((gamepad.axes[2] + 1) / 2) : gamepad.buttons[6].value, options)
+    drawGamepadButtonTrigger(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
+        mapping === "FIREFOX" ? ((gamepad.axes[5] + 1) / 2) : gamepad.buttons[7].value, options)
+
+    drawGamepadButtonTop(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2,
+        "LEFT", gamepad.buttons[4].value > 0, options)
+    drawGamepadButtonTop(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2,
+        "RIGHT", gamepad.buttons[5].value > 0, options)
+
+    drawGamepadCase(ctx, x - 86, y + 36, options)
+
+    drawGamepadButtonGroupXboxABXY(ctx, x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 270,
+        y + globalGamepadButtonSizeGroupXboxABXY.height / 2 + 70,
+        gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3], options)
+
+    drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 + 75,
+        gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0, options)
+
+    drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 210, y + globalGamepadButtonSizeAxis.height / 2 + 170,
+        gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0, options)
+
+
+    drawGamepadButtonPlus(ctx, x + globalGamepadButtonSizePlus.width / 2 + 70, y + globalGamepadButtonSizePlus.height / 2 + 175,
+        pressDirectionVertical, pressDirectionHorizontal, options)
+}
+
 class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
     /**
      * The name of the visualization profile
      * @type {string}
      */
-    static profileName = undefined
+    profileName = "XBoxOne360ControllerChromium"
     /**
      * Check if a gamepad is supported
      * @param {Gamepad} gamepad
@@ -356,56 +446,100 @@ class XBoxOne360ControllerChromium extends GamepadVisualizationProfile {
      * @param {Gamepad} gamepad
      * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
      */
-    static draw(ctx, x, y, gamepad, options = {}) {
-
-        let startIndexButtonAxes = 10
-        let startIndexAxisLeft = 0
-        let startIndexAxisRight = 2
-
-
-
-        /** @type {"LEFT" | "RIGHT"} */
-        let pressDirectionHorizontal
-        /** @type {"UP" | "DOWN"} */
-        let pressDirectionVertical
-
-        let startIndexButtonPlus = 12
-        if (gamepad.buttons[startIndexButtonPlus].value > 0) {
-            pressDirectionVertical = "UP"
-        } else if (gamepad.buttons[startIndexButtonPlus + 1].value > 0) {
-            pressDirectionVertical = "DOWN"
+    draw(ctx, x, y, gamepad, options = {}) {
+        drawXboxGamepad("CHROMIUM", ctx, x, y, gamepad, options)
+    }
+    /**
+     * Get the options of the visualization profile
+     * @returns {{name: string, id: string, inputType: "COLOR"|"TEXT"|"CHECKBOX", description?: string}[]}
+     */
+    getOptions() {
+        return [... super.getOptions(), {
+            id: "showName",
+            inputType: "CHECKBOX",
+            name: "Show name",
+            description: "Show profile name on the controller"
+        }, {
+            id: "caseColor",
+            inputType: "COLOR",
+            name: "Case color",
+            description: "Select a color for the controller case"
+        }]
+    }
+    /**
+     * Get the mapping of the buttons and axes
+     * @returns {{buttons: string[], axes: string[]}}
+     */
+    getMapping() {
+        return {
+            axes: [
+                "LSB-HORIZONTAL",
+                "LSB-VERTICAL",
+                "RSB-HORIZONTAL",
+                "RSB-VERTICAL"
+            ],
+            buttons: [
+                "A", "B", "X", "Y",
+                "LB", "RB",
+                "LT", "RT",
+                "BACK", "START",
+                "LSB", "RSB",
+                "D-PAD-UP", "D-PAD-DOWN", "D-PAD-LEFT", "D-PAD-RIGHT",
+                "XBOX"
+            ]
         }
-        if (gamepad.buttons[startIndexButtonPlus + 2].value > 0) {
-            pressDirectionHorizontal = "LEFT"
-        } else if (gamepad.buttons[startIndexButtonPlus + 3].value > 0) {
-            pressDirectionHorizontal = "RIGHT"
-        }
+    }
+}
 
-        drawGamepadButtonTrigger(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
-            gamepad.buttons[6].value, options)
-        drawGamepadButtonTrigger(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2 - 40,
-            gamepad.buttons[7].value, options)
-
-        drawGamepadButtonTop(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2,
-            "LEFT", gamepad.buttons[4].value > 0, options)
-        drawGamepadButtonTop(ctx, x + 300 + globalGamepadButtonSizeAxis.width / 2 - 20, y + globalGamepadButtonSizeAxis.height / 2,
-            "RIGHT", gamepad.buttons[5].value > 0, options)
-
+class UnknownController extends GamepadVisualizationProfile {
+    /**
+     * The name of the visualization profile
+     * @type {string}
+     */
+    profileName = "Unknown"
+    /**
+     * Check if a gamepad is supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadIsSupported(gamepad) {
+        return false
+    }
+    /**
+     * Check if a gamepad can be supported
+     * @param {Gamepad} gamepad
+     * @returns {boolean}
+     */
+    static gamepadCanBeSupported(gamepad) {
+        return true
+    }
+    /**
+     * Draw a gamepad
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {number} x
+     * @param {number} y
+     * @param {Gamepad} gamepad
+     * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
+     */
+    draw(ctx, x, y, gamepad, options = {}) {
         drawGamepadCase(ctx, x - 86, y + 36, options)
-
-        drawGamepadButtonGroupXboxABXY(ctx, x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 270,
-            y + globalGamepadButtonSizeGroupXboxABXY.height / 2 + 70,
-            gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3], options)
-
-        drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 20, y + globalGamepadButtonSizeAxis.height / 2 + 75,
-            gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0, options)
-
-        drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 210, y + globalGamepadButtonSizeAxis.height / 2 + 170,
-            gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0, options)
-
-
-        drawGamepadButtonPlus(ctx, x + globalGamepadButtonSizePlus.width / 2 + 70, y + globalGamepadButtonSizePlus.height / 2 + 175,
-            pressDirectionVertical, pressDirectionHorizontal, options)
+    }
+    /**
+     * Get the options of the visualization profile
+     * @returns {{name: string, id: string, inputType: "COLOR"|"TEXT"|"CHECKBOX", description?: string}[]}
+     */
+    getOptions() {
+        return []
+    }
+    /**
+     * Get the mapping of the buttons and axes
+     * @returns {{buttons: string[], axes: string[]}}
+     */
+    getMapping() {
+        return {
+            axes: Array(100).fill("Unknown"),
+            buttons: Array(100).fill("Unknown")
+        }
     }
 }
 
@@ -414,7 +548,7 @@ class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
      * The name of the visualization profile
      * @type {string}
      */
-    static profileName = undefined
+    profileName = undefined
     /**
      * Check if a gamepad is supported
      * @param {Gamepad} gamepad
@@ -446,39 +580,31 @@ class XBoxOne360ControllerFirefox extends GamepadVisualizationProfile {
      * @param {Gamepad} gamepad
      * @param {{drawAlphaMask?: boolean, [key: string]: any}} options
      */
-    static draw(ctx, x, y, gamepad, options = {}) {
-        drawGamepadButtonGroupXboxABXY(ctx, x + globalGamepadButtonSizeGroupXboxABXY.width / 2 + 300,
-            y + globalGamepadButtonSizeGroupXboxABXY.height / 2,
-            gamepad.buttons[0], gamepad.buttons[1], gamepad.buttons[2], gamepad.buttons[3])
-
-        let startIndexButtonAxes = 9
-        let startIndexAxisLeft = 0
-        let startIndexAxisRight = 3
-
-        drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2, y + globalGamepadButtonSizeAxis.height / 2,
-            gamepad.axes[startIndexAxisLeft], gamepad.axes[startIndexAxisLeft + 1], gamepad.buttons[startIndexButtonAxes].value > 0)
-
-        drawGamepadButtonAxis(ctx, x + globalGamepadButtonSizeAxis.width / 2 + 250, y + globalGamepadButtonSizeAxis.height / 2 + 125,
-            gamepad.axes[startIndexAxisRight], gamepad.axes[startIndexAxisRight + 1], gamepad.buttons[startIndexButtonAxes + 1].value > 0)
-
-        /** @type {"LEFT" | "RIGHT"} */
-        let pressDirectionHorizontal
-        /** @type {"UP" | "DOWN"} */
-        let pressDirectionVertical
-
-        let startIndexAxisPlus = 6
-        if (gamepad.axes[startIndexAxisPlus] > 0) {
-            pressDirectionHorizontal = "RIGHT"
-        } else if (gamepad.axes[startIndexAxisPlus] < 0) {
-            pressDirectionHorizontal = "LEFT"
+    draw(ctx, x, y, gamepad, options = {}) {
+        drawXboxGamepad("FIREFOX", ctx, x, y, gamepad, options)
+    }
+    /**
+     * Get the mapping of the buttons and axes
+     * @returns {{buttons: string[], axes: string[]}}
+     */
+    getMapping() {
+        return {
+            axes: [
+                "LSB-HORIZONTAL",
+                "LSB-VERTICAL",
+                "LT",
+                "RSB-HORIZONTAL",
+                "RSB-VERTICAL",
+                "RT",
+                "D-PAD-HORIZONTAL", "D-PAD-VERTICAL"
+            ],
+            buttons: [
+                "A", "B", "X", "Y",
+                "LB", "RB",
+                "BACK", "START",
+                "XBOX",
+                "LSB", "RSB"
+            ]
         }
-        if (gamepad.axes[startIndexAxisPlus + 1] > 0) {
-            pressDirectionVertical = "DOWN"
-        } else if (gamepad.axes[startIndexAxisPlus + 1] < 0) {
-            pressDirectionVertical = "UP"
-        }
-
-        drawGamepadButtonPlus(ctx, x + globalGamepadButtonSizePlus.width / 2, y + globalGamepadButtonSizePlus.height / 2 + 125,
-            pressDirectionVertical, pressDirectionHorizontal)
     }
 }

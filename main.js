@@ -1,6 +1,6 @@
 /**
  * Container for all currently connected gamepads
- * @type {Map<number, Gamepad>}
+ * @type {Map<number, {gamepad: Gamepad;visualizationProfile: GamepadVisualizationProfile;userProfile: any}>}
  * @global
  */
 const globalGamepads = new Map()
@@ -56,43 +56,146 @@ const hexToRgba = (hex, alpha = undefined) => {
 }
 
 /**
+ * @param {Gamepad} gamepad Gamepad to add
+ * @param {GamepadVisualizationProfile} visualizationProfile
+ * @param {any} userProfile
+ */
+const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
+    const htmlUlControllerOptionsList = document.getElementById("controller-options-list")
+    const htmlLiElementGamepad = document.createElement("li")
+    htmlLiElementGamepad.id = `controller-${gamepad.index}-${gamepad.id}`
+
+    const htmlGamepadVisualizationProfile = document.createElement("p")
+    htmlGamepadVisualizationProfile.appendChild(document.createTextNode("visualization profile: " + visualizationProfile.profileName))
+    htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfile)
+
+    const htmlUserProfile = document.createElement("p")
+    htmlUserProfile.appendChild(document.createTextNode("user profile: " + userProfile.name))
+    htmlLiElementGamepad.appendChild(htmlUserProfile)
+
+    const htmlGamepadTitle = document.createElement("p")
+    htmlGamepadTitle.appendChild(document.createTextNode("name: " + gamepad.id))
+    htmlLiElementGamepad.appendChild(htmlGamepadTitle)
+    const htmlGamepadButtons = document.createElement("ul")
+    htmlGamepadButtons.className = "buttons"
+    for (const [buttonId, button] of gamepad.buttons.entries()) {
+        const htmlGamepadButton = document.createElement("li")
+        htmlGamepadButton.textContent = `Button ${buttonId} (->${
+            visualizationProfile.getMapping().buttons[buttonId]
+        }):`
+        const htmlGamepadButtonInfo = document.createElement("span")
+        htmlGamepadButtonInfo.textContent = `${button.value} (pressed: ${button.pressed}, touched: ${button.touched})`
+        htmlGamepadButton.appendChild(htmlGamepadButtonInfo)
+        const htmlGamepadButtonProgress = document.createElement("progress")
+        htmlGamepadButtonProgress.className = "button"
+        htmlGamepadButtonProgress.setAttribute("max", "1")
+        htmlGamepadButtonProgress.setAttribute("value", "0")
+        htmlGamepadButtonProgress.innerHTML = buttonId.toString()
+        htmlGamepadButton.appendChild(document.createElement("br"))
+        htmlGamepadButton.appendChild(htmlGamepadButtonProgress)
+        htmlGamepadButtons.appendChild(htmlGamepadButton)
+    }
+    htmlLiElementGamepad.appendChild(htmlGamepadButtons)
+    const htmlGamepadAxes = document.createElement("ul")
+    htmlGamepadAxes.className = "axes"
+    for (const [axisId, axis] of gamepad.axes.entries()) {
+        const htmlGamepadAxis = document.createElement("li")
+        htmlGamepadAxis.textContent = `Axis ${axisId} (->${
+            visualizationProfile.getMapping().axes[axisId]
+        }): `
+        const htmlGamepadAxisInfo = document.createElement("span")
+        htmlGamepadAxisInfo.textContent = `${axis}`
+        htmlGamepadAxis.appendChild(htmlGamepadAxisInfo)
+        const htmlGamepadAxisProgress = document.createElement("progress")
+        htmlGamepadAxisProgress.className = "axis"
+        htmlGamepadAxisProgress.setAttribute("max", "2")
+        htmlGamepadAxisProgress.setAttribute("value", "1")
+        htmlGamepadAxisProgress.innerHTML = axisId.toString()
+        htmlGamepadAxis.appendChild(document.createElement("br"))
+        htmlGamepadAxis.appendChild(htmlGamepadAxisProgress)
+        htmlGamepadAxes.appendChild(htmlGamepadAxis)
+    }
+    htmlLiElementGamepad.appendChild(htmlGamepadAxes)
+
+    htmlUlControllerOptionsList.appendChild(htmlLiElementGamepad)
+}
+
+/**
+ * @param {Gamepad} gamepad Gamepad to remove
+ */
+const removeGamepadListElement = (gamepad) => {
+    const htmlGamepad = document.getElementById(`controller-${gamepad.index}-${gamepad.id}`)
+    document.body.removeChild(htmlGamepad)
+}
+
+/**
+ * @param {Gamepad} gamepad Gamepad to remove
+ */
+const updateGamepadListElement = (gamepad) => {
+    const htmlGamepad = document.getElementById(`controller-${gamepad.index}-${gamepad.id}`)
+    /** @type {HTMLCollectionOf<HTMLProgressElement>} */
+    // @ts-ignore
+    const htmlButtonProgressList = htmlGamepad.querySelectorAll("ul.buttons li progress")
+    /** @type {HTMLCollectionOf<HTMLSpanElement>} */
+    // @ts-ignore
+    const htmlButtonList = htmlGamepad.querySelectorAll("ul.buttons li span")
+    for (const [controllerButtonId, controllerButton] of gamepad.buttons.entries()) {
+        const htmlButtonProgress = htmlButtonProgressList[controllerButtonId]
+        const htmlButton = htmlButtonList[controllerButtonId]
+        // Can be temporarily undefined!
+        if (htmlButton && htmlButtonProgress) {
+            htmlButton.innerText = `${controllerButton.value} (pressed: ${controllerButton.pressed}, touched: ${controllerButton.touched})`
+            htmlButtonProgress.value = controllerButton.value
+        }
+    }
+    /** @type {HTMLCollectionOf<HTMLProgressElement>} */
+    // @ts-ignore
+    const htmlAxisProgressList = htmlGamepad.querySelectorAll("ul.axes li progress")
+    /** @type {HTMLCollectionOf<HTMLSpanElement>} */
+    // @ts-ignore
+    const htmlAxisList = htmlGamepad.querySelectorAll("ul.axes li span")
+    for (const [axisId, axis] of gamepad.axes.entries()) {
+        const htmlAxisProgress = htmlAxisProgressList[axisId]
+        const htmlAxis = htmlAxisList[axisId]
+            // Can be temporarily undefined!
+            if (htmlAxis && htmlAxisProgress) {
+            htmlAxis.innerText = `${axis}`
+            htmlAxisProgress.value = axis + 1
+        }
+    }
+}
+
+/**
  * Add a connected gamepad
  * @param {Gamepad} gamepad Gamepad to add
  */
-function addGamepad(gamepad) {
-    /* >> Temporary HTML debugging */
-    if (globalDebug) {
-        const htmlGamepad = document.createElement("div")
-        htmlGamepad.setAttribute("id", "gamepad" + gamepad.index)
-        const htmlGamepadTitle = document.createElement("h1")
-        htmlGamepadTitle.appendChild(document.createTextNode("gamepad: " + gamepad.id))
-        htmlGamepad.appendChild(htmlGamepadTitle)
-        const htmlGamepadButtons = document.createElement("div")
-        htmlGamepadButtons.className = "buttons"
-        for (const [gamepadId, _] of gamepad.buttons.entries()) {
-            const htmlGamepadButton = document.createElement("span")
-            htmlGamepadButton.innerHTML = gamepadId.toString()
-            htmlGamepadButtons.appendChild(htmlGamepadButton)
+const addGamepad = (gamepad) => {
+    // TODO: Fetch last visualization profile from localStorage (possibly from user profile?)
+
+    let visualizationProfile
+    if (XBoxOne360ControllerChromium.gamepadIsSupported(gamepad)) {
+        visualizationProfile = new XBoxOne360ControllerChromium()
+    } else if (XBoxOne360ControllerFirefox.gamepadIsSupported(gamepad)) {
+        visualizationProfile = new XBoxOne360ControllerFirefox()
+    } else {
+        if (XBoxOne360ControllerChromium.gamepadCanBeSupported(gamepad)) {
+            visualizationProfile = new XBoxOne360ControllerChromium()
+        } else if (XBoxOne360ControllerFirefox.gamepadCanBeSupported(gamepad)) {
+            visualizationProfile = new XBoxOne360ControllerFirefox()
+        } else {
+            visualizationProfile = new UnknownController()
+            console.warn("No gamepad profile was found that could render the currently connected controller")
         }
-        htmlGamepad.appendChild(htmlGamepadButtons)
-        const htmlGamepadAxes = document.createElement("div")
-        htmlGamepadAxes.className = "axes"
-        for (const [gamepadAxisId, _] of gamepad.axes.entries()) {
-            const htmlGamepadAxis = document.createElement("progress")
-            htmlGamepadAxis.className = "axis"
-            htmlGamepadAxis.setAttribute("max", "2")
-            htmlGamepadAxis.setAttribute("value", "1")
-            htmlGamepadAxis.innerHTML = gamepadAxisId.toString()
-            htmlGamepadAxes.appendChild(htmlGamepadAxis)
-        }
-        htmlGamepad.appendChild(htmlGamepadAxes)
-        document.body.appendChild(htmlGamepad)
     }
-    /* << Temporary HTML debugging */
+    // TODO: Fetch last user profile from localStorage
+    const userProfile = {}
+    globalGamepads.set(gamepad.index, { gamepad, visualizationProfile, userProfile })
 
-    globalGamepads.set(gamepad.index, gamepad)
+    addGamepadListElement(gamepad, visualizationProfile, userProfile)
 
+    // @ts-ignore
     if (gamepad.vibrationActuator) {
+        // @ts-ignore
         gamepad.vibrationActuator.playEffect("dual-rumble", {
             startDelay: 0,
             duration: 300,
@@ -108,12 +211,7 @@ function addGamepad(gamepad) {
  * @param {Gamepad} gamepad Gamepad to remove
  */
 function removeGamepad(gamepad) {
-    /* >> Temporary HTML debugging */
-    if (globalDebug) {
-        const htmlGamepad = document.getElementById("gamepad" + gamepad.index)
-        document.body.removeChild(htmlGamepad)
-    }
-    /* << Temporary HTML debugging */
+    removeGamepadListElement(gamepad)
 
     globalGamepads.delete(gamepad.index)
     globalAnimationFrameRequest = window.requestAnimationFrame(loop)
@@ -127,43 +225,13 @@ const updateGamepads = () => {
         // This can be temporarily undefined!
         if (gamepad) {
             if (globalGamepads.has(gamepad.index)) {
-                globalGamepads.set(gamepad.index, gamepad)
+                globalGamepads.set(gamepad.index, Object.assign(globalGamepads.get(gamepad.index), { gamepad }))
             } else {
                 addGamepad(gamepad)
             }
+            updateGamepadListElement(gamepad)
         }
     }
-
-    /* >> Temporary HTML debugging */
-    if (globalDebug) {
-        for (const [gamepadId, gamepad] of globalGamepads.entries()) {
-            const htmlGamepad = document.getElementById("gamepad" + gamepadId)
-            /** @type {HTMLCollectionOf<HTMLDivElement>} */
-            // @ts-ignore
-            const htmlButtons = htmlGamepad.getElementsByClassName("button")
-            for (const [controllerButtonId, controllerButton] of gamepad.buttons.entries()) {
-                const htmlButton = htmlButtons[controllerButtonId]
-                // Can be temporarily undefined!
-                if (htmlButton) {
-                    let pressed = controllerButton.pressed
-                    let pressedValue = controllerButton.value
-                    const pct = Math.round(pressedValue * 100) + "%"
-                    htmlButton.style.backgroundSize = pct + " " + pct
-                    htmlButton.className = pressed ? "button pressed" : "button"
-                }
-            }
-            const htmlAxes = htmlGamepad.getElementsByClassName("axis")
-            for (const [axisId, axis] of gamepad.axes.entries()) {
-                const htmlAxis = htmlAxes[axisId]
-                // Can be temporarily undefined!
-                if (htmlAxis) {
-                    htmlAxis.innerHTML = axisId + ": " + axis.toFixed(4)
-                    htmlAxis.setAttribute("value", `${axis + 1}`)
-                }
-            }
-        }
-    }
-    /* << Temporary HTML debugging */
 }
 
 window.addEventListener("gamepadconnected", e => {
@@ -226,43 +294,16 @@ const update = timeDelta => {
 
 /**
  * Draw a frame
- * @param {Gamepad} gamepad Gamepad that should be drawn
+ * @param {{ gamepad: Gamepad, visualizationProfile: GamepadVisualizationProfile }} gamepadInfo Gamepad that should be drawn
  * @param {number} gamepadIndex The index of the gamepad in relation to all connected gamepads
  * @param {number} gamepadCount The number of connected gamepads
  */
-const drawGamepad = (gamepad, gamepadIndex, gamepadCount, options) => {
-    if (globalDebug) {
-        globalCtx.fillStyle = "black"
-        globalCtx.font = "20px FiraCode"
-        for (const [controllerButtonId, controllerButton] of gamepad.buttons.entries()) {
-            globalCtx.fillText(`${controllerButtonId}: ${Math.round(controllerButton.value * 100)}% (${
-                controllerButton.value > 0 ? "pressed" : "not pressed"})`,
-                50 + (300 * gamepadIndex),
-                90 + (25 * controllerButtonId))
-        }
-        for (const [controllerAxisId, controllerAxis] of gamepad.axes.entries()) {
-            globalCtx.fillText(`${controllerAxisId}: ${controllerAxis.toFixed(4)} (${controllerAxis})`,
-                50 + (300 * gamepadIndex),
-                130 + (25 * (gamepad.buttons.length + controllerAxisId)))
-        }
-    }
-    const startY = 150 + (25 * (globalDebug ? gamepad.buttons.length + gamepad.axes.length : 0))
+// @ts-ignore
+const drawGamepad = (gamepadInfo, gamepadIndex, gamepadCount, options) => {
+    const startY = 10 + (globalDebug ? 50 : 0)
     const startX = 90 + (500 * gamepadIndex)
 
-    if (XBoxOne360ControllerChromium.gamepadIsSupported(gamepad)) {
-        XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad, options)
-    } else if (XBoxOne360ControllerFirefox.gamepadIsSupported(gamepad)) {
-        XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad, options)
-    } else {
-        if (XBoxOne360ControllerChromium.gamepadCanBeSupported(gamepad)) {
-            XBoxOne360ControllerChromium.draw(globalCtx, startX, startY, gamepad, options)
-        } else if (XBoxOne360ControllerFirefox.gamepadCanBeSupported(gamepad)) {
-            XBoxOne360ControllerFirefox.draw(globalCtx, startX, startY, gamepad, options)
-        } else {
-            throw Error("No gamepad profile was found that could render the currently connected controller")
-        }
-    }
-
+    gamepadInfo.visualizationProfile.draw(globalCtx, startX, startY, gamepadInfo.gamepad, options)
 }
 
 let globalOptionDrawAlphaMask = false
@@ -279,7 +320,7 @@ const draw = (ctx) => {
 
     // Draw canvas elements
     if (globalDebug) {
-        ctx.font = "30px FiraCode"
+        ctx.font = "30px Helvetica"
         ctx.fillStyle = "black"
         ctx.fillText(globalTimeLastFrame.toString(), 50, 50)
         ctx.fillText(`fps: ${fps.toPrecision(3)}`, 200, 50)
@@ -292,8 +333,8 @@ const draw = (ctx) => {
         }
         ctx.fillStyle = globalOptionDrawAlphaMask === true ? "black" : globalOptionBackgroundColor
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-        for (const [gamepadIndex, gamepad] of globalGamepads.entries()) {
-            drawGamepad(gamepad, gamepadIndex, globalGamepads.size, options)
+        for (const [gamepadIndex, gamepadInfo] of globalGamepads.entries()) {
+            drawGamepad(gamepadInfo, gamepadIndex, globalGamepads.size, options)
         }
     } else {
         ctx.fillStyle = globalOptionBackgroundColor
@@ -301,15 +342,16 @@ const draw = (ctx) => {
         ctx.fillStyle = "rgba(255,255,255,0.35)"
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         console.log("draw empty canvas")
-        const fontSize = 30
-        ctx.font = `${fontSize}x Helvetica`
+        const fontSize = Math.floor(Math.min(50, Math.min(ctx.canvas.width, ctx.canvas.height) / 10))
+        ctx.font = `${fontSize}px Helvetica`
+        console.log(fontSize, ctx.font)
         ctx.fillStyle = "black"
         const textConnectGamepad = "Connect a\ngamepad and\npress any\nbutton"
         const textConnectGamepadParts = textConnectGamepad.split("\n")
-        const heightCenter = ctx.canvas.height / 2 - (fontSize * textConnectGamepadParts.length) / 2
+        const heightCenter = ctx.canvas.height / 2 - ((fontSize + 5) * textConnectGamepadParts.length) / 2
         for (const [index, textConnectGamepadPart] of textConnectGamepadParts.entries()) {
             const textConnectGamepadSize = ctx.measureText(textConnectGamepadPart)
-            ctx.fillText(textConnectGamepadPart, ctx.canvas.width / 2 - textConnectGamepadSize.width / 2, heightCenter + index * fontSize)
+            ctx.fillText(textConnectGamepadPart, ctx.canvas.width / 2 - textConnectGamepadSize.width / 2, heightCenter + index * (fontSize + 5))
         }
     }
 }
@@ -381,7 +423,7 @@ const createOptionsInput = () => {
 
     /** @type {HTMLInputElement} */
     // @ts-ignore
-    const htmlInputSetBackgroundColor = document.getElementById("htmlInputSetBackgroundColor")
+    const htmlInputSetBackgroundColor = document.getElementById("html-input-set-background-color")
     const defaultValueBackgroundColor = localStorage.getItem('backgroundColor')
     if (defaultValueBackgroundColor) {
         globalOptionBackgroundColor = defaultValueBackgroundColor
@@ -399,7 +441,7 @@ const createOptionsInput = () => {
 
     /** @type {HTMLInputElement} */
     // @ts-ignore
-    const htmlInputToggleMask = document.getElementById("htmlInputToggleMask")
+    const htmlInputToggleMask = document.getElementById("html-input-toggle-mask")
     const defaultValueDrawAlphaMask = localStorage.getItem('drawAlphaMask')
     if (defaultValueDrawAlphaMask) {
         globalOptionDrawAlphaMask = defaultValueDrawAlphaMask === "true"
@@ -417,7 +459,7 @@ const createOptionsInput = () => {
 
     /** @type {HTMLInputElement} */
     // @ts-ignore
-    const htmlInputToggleDebug = document.getElementById("htmlInputToggleDebug")
+    const htmlInputToggleDebug = document.getElementById("html-input-toggle-debug")
     const defaultValueDebug = localStorage.getItem('debug')
     if (defaultValueDebug) {
         globalDebug = defaultValueDebug === "true"
@@ -435,7 +477,7 @@ const createOptionsInput = () => {
 
     /** @type {HTMLInputElement} */
     // @ts-ignore
-    const htmlInputTriggerReset = document.getElementById("htmlInputTriggerReset")
+    const htmlInputTriggerReset = document.getElementById("html-input-trigger-reset")
     htmlInputTriggerReset.addEventListener("click", () => {
         console.log(`Update htmlInputToggleDebug to: '${htmlInputToggleDebug.checked}'`)
         // Clear all customized options
@@ -464,7 +506,7 @@ window.addEventListener('load', () => {
             resolve(colorInput.value)
         })
         document.body.appendChild(colorInput)
-        document.getElementById("colorDialogID").click()
+
     })
 
     // Start render loop

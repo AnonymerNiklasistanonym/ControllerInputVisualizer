@@ -26,26 +26,28 @@
 
     <!-- Element for all general options -->
     <div id="options">
-        <input id="htmlInputSetBackgroundColor" type="color">
-        <label id="htmlLabelInputSetBackgroundColor" for="htmlInputSetBackgroundColor">
+        <input id="html-input-set-background-color" type="color">
+        <label id="html-label-input-set-background-color" for="html-input-set-background-color">
             Select custom background color
         </label>
         <br>
-        <input id="htmlInputToggleMask" type="checkbox">
-        <label id="htmlLabelInputToggleMask" for="htmlInputToggleMask">
+        <input id="html-input-toggle-mask" type="checkbox">
+        <label id="html-label-input-toggle-mask" for="html-input-toggle-mask">
             Render alpha mask (for chroma keying)
         </label>
         <br>
-        <input id="htmlInputToggleDebug" type="checkbox">
-        <label id="htmlLabelInputToggleDebug" for="htmlInputToggleDebug">
+        <input id="html-input-toggle-debug" type="checkbox">
+        <label id="html-label-input-toggle-debug" for="html-input-toggle-debug">
             Debug view
         </label>
         <br>
-        <input id="htmlInputTriggerReset" type="button" value="Reset all options">
+        <input id="html-input-trigger-reset" type="button" value="Reset all options">
     </div>
 
     <!-- Element for all controller specific options -->
-    <div id="controller-options"></div>
+    <div id="controller-options">
+        <ul id="controller-options-list"></ul>
+    </div>
 
     <!-- Scripts -->
     <script src="visualization_profiles.js"></script>
