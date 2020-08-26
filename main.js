@@ -38,7 +38,7 @@ let globalCtx
 /**
  * Indicates if debugging is activated
  */
-let globalDebug = true
+let globalDebug = false
 
 /**
  * https://stackoverflow.com/a/28056903
@@ -304,10 +304,7 @@ const drawGamepads = (ctx, gamepads, options) => {
     let gamePadSizes = []
     let gamePadPadding = []
     const padding = 20
-    if (gamepads.size === 1) {
-        heightOfAllGamepads = gamepads[0].visualizationProfile.getDrawSize().height
-        widthOfAllGamepads = gamepads[0].visualizationProfile.getDrawSize().width
-    } else if (gamepads.size >= 1) {
+    if (gamepads.size >= 1) {
         heightOfAllGamepads = padding * (gamepads.size - 1)
         widthOfAllGamepads = padding * (gamepads.size - 1)
         for (const [_, gamepadInfo] of gamepads) {
@@ -322,13 +319,15 @@ const drawGamepads = (ctx, gamepads, options) => {
     for (const [gamepadIndex, gamepadInfo] of gamepads.entries()) {
         let gamepadX
         let gamepadY
+        let scale = 1.0
+        const verticalPresentation = ctx.canvas.height > ctx.canvas.width
+
         if (gamepads.size === 1) {
             // When only one center it
             gamepadX = ctx.canvas.width / 2
             gamepadY = ctx.canvas.height / 2
         } else {
             // Determine if vertical or horizontal presentation
-            const verticalPresentation = ctx.canvas.height > ctx.canvas.width
             if (verticalPresentation) {
                 gamepadY = ((ctx.canvas.height - heightOfAllGamepads) / 2) + // upper offset to controllers
                     gamePadSizes.slice(0, gamepadIndex).reduce((a, b) => a + b.height, 0) + // controllers above
@@ -343,7 +342,12 @@ const drawGamepads = (ctx, gamepads, options) => {
                 gamepadY = ctx.canvas.height / 2
             }
         }
-
+        if (verticalPresentation) {
+            scale = gamepadInfo.visualizationProfile.getDrawSize().height / (ctx.canvas.height * 0.9)
+        } else {
+            scale = gamepadInfo.visualizationProfile.getDrawSize().width / (ctx.canvas.width * 0.9)
+        }
+        console.log(scale)
         gamepadInfo.visualizationProfile.draw(globalCtx, gamepadX, gamepadY, gamepadInfo.gamepad, options)
     }
 }
