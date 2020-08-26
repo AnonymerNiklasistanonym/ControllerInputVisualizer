@@ -100,7 +100,7 @@ const addOrUpdateLocalStorageGamepadVisualizationUserProfile = (gamepadVisualiza
     // Check if there is an index for these profiles
     const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
     /** @type {UserProfile[]} */
-    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [], {
+    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [{ name: "Default "}], {
         jsonParseLocalStorageValue: true,
         jsonStringifyDefaultValue: true
     })
@@ -125,15 +125,14 @@ const getLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationProf
     // Check if there is an index for these profiles
     const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
     /** @type {UserProfile[]} */
-    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [], {
+    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [{ name: "Default "}], {
         jsonParseLocalStorageValue: true,
         jsonStringifyDefaultValue: true
     })
-    // If undefined return the first user profile
-    console.log({ userProfileName, userProfiles })
-    if ((userProfileName === undefined || userProfileName === null) && userProfiles.length > 0) {
-        return userProfiles[0]
-    } else {
+    if (userProfileName === undefined || userProfileName === null) {
+        userProfileName = "Default"
+    }
+    if (userProfiles.length > 0) {
         // Otherwise check if profile already exists and if yes overwrite otherwise just add
         let index = userProfiles.findIndex(a => a.name === userProfileName)
         console.log({ index })
@@ -171,7 +170,6 @@ const removeLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationP
     }
 }
 
-
 /**
  * @param {Gamepad} gamepad Gamepad to add
  * @param {GamepadVisualizationProfile} visualizationProfile
@@ -186,9 +184,12 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
     htmlGamepadVisualizationProfile.appendChild(document.createTextNode("visualization profile: " + visualizationProfile.profileName))
     htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfile)
 
+    // TODO: Add select statement for supported visualization profiles which on click updates globalGamepads and renders all gamepadListElements again
+    // TODO: Add select statement for profiles
+
     const lastUseProfileOfVisualizationProfile = localStorage.getItem(`gamepadVisualizationUserProfiles-${visualizationProfile.profileName}-lastUsed`)
-    const existingUserProfile = getLocalStorageGamepadVisualizationUserProfile(visualizationProfile, lastUseProfileOfVisualizationProfile)
-    if (existingUserProfile !== undefined) {
+    const existingUserProfile = getLocalStorageGamepadVisualizationUserProfile(visualizationProfile, userProfile.name ? userProfile.name : lastUseProfileOfVisualizationProfile)
+    if (userProfile.name === undefined && existingUserProfile !== undefined) {
         for (const key of Object.keys(existingUserProfile)) {
             userProfile[key] = existingUserProfile[key]
         }
@@ -247,6 +248,8 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
         for (const key of Object.keys(userProfile)) {
             delete userProfile[key]
         }
+        userProfile.name = "Default"
+        updateGamepadListElements()
     })
     htmlLiElementGamepad.appendChild(htmlResetVisualizationProfileOptions)
 
@@ -304,6 +307,16 @@ const removeGamepadListElement = (gamepad) => {
     const htmlGamepad = document.getElementById(`controller-${gamepad.index}-${gamepad.id}`)
     htmlGamepad.parentElement.removeChild(htmlGamepad)
 }
+
+function updateGamepadListElements() {
+    for (const [_, gamepadInfo] of globalGamepads) {
+        removeGamepadListElement(gamepadInfo.gamepad)
+    }
+    for (const [_, gamepadInfo] of globalGamepads) {
+        addGamepadListElement(gamepadInfo.gamepad, gamepadInfo.visualizationProfile, gamepadInfo.userProfile)
+    }
+}
+
 
 /**
  * @param {Gamepad} gamepad Gamepad to remove
