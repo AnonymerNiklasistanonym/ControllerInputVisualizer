@@ -104,6 +104,10 @@ const addOrUpdateLocalStorageGamepadVisualizationUserProfile = (gamepadVisualiza
         jsonParseLocalStorageValue: true,
         jsonStringifyDefaultValue: true
     })
+    // If user profile is "Default" update name so that default is never changed
+    if (userProfile.name = "Default") {
+        userProfile.name = "Default (Customized)"
+    }
     // Check if profile already exists and if yes overwrite otherwise just add
     const userProfileName = userProfile.name
     let index = userProfiles.findIndex(a => a.name === userProfileName)
@@ -114,6 +118,21 @@ const addOrUpdateLocalStorageGamepadVisualizationUserProfile = (gamepadVisualiza
     }
     localStorage.setItem(gamepadVisualizationProfiles, JSON.stringify(userProfiles))
     localStorage.setItem(gamepadVisualizationProfiles + "-lastUsed", userProfile.name)
+    updateGamepadListElements()
+}
+
+/**
+ * Get a gamepad visualization user profile from the local storage
+ * @param {GamepadVisualizationProfile} gamepadVisualizationProfile
+ */
+const getLocalStorageGamepadVisualizationUserProfiles = (gamepadVisualizationProfile) => {
+    // Check if there is an index for these profiles
+    const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
+    /** @type {UserProfile[]} */
+    return checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [{ name: "Default "}], {
+        jsonParseLocalStorageValue: true,
+        jsonStringifyDefaultValue: true
+    })
 }
 
 /**
@@ -122,13 +141,8 @@ const addOrUpdateLocalStorageGamepadVisualizationUserProfile = (gamepadVisualiza
  * @param {string} userProfileName
  */
 const getLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationProfile, userProfileName = undefined) => {
-    // Check if there is an index for these profiles
-    const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
     /** @type {UserProfile[]} */
-    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [{ name: "Default "}], {
-        jsonParseLocalStorageValue: true,
-        jsonStringifyDefaultValue: true
-    })
+    const userProfiles = getLocalStorageGamepadVisualizationUserProfiles(gamepadVisualizationProfile)
     if (userProfileName === undefined || userProfileName === null) {
         userProfileName = "Default"
     }
@@ -136,7 +150,8 @@ const getLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationProf
         // Otherwise check if profile already exists and if yes overwrite otherwise just add
         let index = userProfiles.findIndex(a => a.name === userProfileName)
         console.log({ index })
-        if (index !== -1) {
+        if (index > -1) {
+            console.log({ userProfileReturn: userProfiles[index] })
             return userProfiles[index]
         }
     }
@@ -152,10 +167,7 @@ const removeLocalStorageGamepadVisualizationUserProfile = (gamepadVisualizationP
     // Check if there is an index for these profiles
     const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${gamepadVisualizationProfile.profileName}`
     /** @type {UserProfile[]} */
-    const userProfiles = checkAndSetLocalStorageForId(gamepadVisualizationProfiles, [], {
-        jsonParseLocalStorageValue: true,
-        jsonStringifyDefaultValue: true
-    })
+    const userProfiles = getLocalStorageGamepadVisualizationUserProfiles(gamepadVisualizationProfile)
     // Check if profile already exists and if yes overwrite otherwise just add
     const userProfileName = userProfile.name
     let index = userProfiles.findIndex(a => a.name === userProfileName)
@@ -181,8 +193,72 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
     htmlLiElementGamepad.id = `controller-${gamepad.index}-${gamepad.id}`
 
     const htmlGamepadVisualizationProfile = document.createElement("p")
-    htmlGamepadVisualizationProfile.appendChild(document.createTextNode("visualization profile: " + visualizationProfile.profileName))
+    htmlGamepadVisualizationProfile.appendChild(document.createTextNode("visualization profile: "))
     htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfile)
+
+    const htmlGamepadVisualizationProfileSelect = document.createElement("select")
+    const supportedVisualizations = []
+    if (XBoxOne360ControllerChromium.gamepadCanBeSupported(gamepad)) {
+        supportedVisualizations.push(new XBoxOne360ControllerChromium().profileName)
+    }
+    if (XBoxOne360ControllerFirefox.gamepadCanBeSupported(gamepad)) {
+        supportedVisualizations.push(new XBoxOne360ControllerFirefox().profileName)
+    }
+    if (UnknownController.gamepadCanBeSupported(gamepad)) {
+        supportedVisualizations.push(new UnknownController().profileName)
+    }
+    for (const controllerProfileName of supportedVisualizations) {
+        const htmlGamepadVisualizationProfileSelectOption = document.createElement("option")
+        htmlGamepadVisualizationProfileSelectOption.value = controllerProfileName
+        htmlGamepadVisualizationProfileSelectOption.textContent = controllerProfileName
+        htmlGamepadVisualizationProfileSelect.appendChild(htmlGamepadVisualizationProfileSelectOption)
+    }
+    htmlGamepadVisualizationProfileSelect.addEventListener("change", () => {
+        switch (htmlGamepadVisualizationProfileSelect.value) {
+            case new XBoxOne360ControllerFirefox().profileName:
+                visualizationProfile = new XBoxOne360ControllerFirefox()
+                break;
+            case new XBoxOne360ControllerChromium().profileName:
+                visualizationProfile = new XBoxOne360ControllerChromium()
+                break;
+            default:
+                visualizationProfile = new UnknownController()
+                break
+        }
+        globalGamepads.set(gamepad.index, Object.assign(globalGamepads.get(gamepad.index), { visualizationProfile }))
+        updateGamepadListElements()
+    })
+    htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfileSelect)
+    htmlGamepadVisualizationProfileSelect.value = visualizationProfile.profileName
+    htmlLiElementGamepad.appendChild(document.createElement("br"))
+    htmlLiElementGamepad.appendChild(document.createElement("br"))
+
+
+    const htmlGamepadVisualizationUserProfile = document.createElement("p")
+    htmlGamepadVisualizationUserProfile.appendChild(document.createTextNode("Select an existing visualization user profile: "))
+    htmlLiElementGamepad.appendChild(htmlGamepadVisualizationUserProfile)
+
+    const htmlGamepadVisualizationUserProfileSelect = document.createElement("select")
+    const supportedVisualizationUserProfiles = getLocalStorageGamepadVisualizationUserProfiles(visualizationProfile)
+    for (const supportedVisualizationUserProfile of supportedVisualizationUserProfiles) {
+        const htmlGamepadVisualizationUserProfileSelectOption = document.createElement("option")
+        htmlGamepadVisualizationUserProfileSelectOption.value = supportedVisualizationUserProfile.name
+        htmlGamepadVisualizationUserProfileSelectOption.textContent = supportedVisualizationUserProfile.name
+        htmlGamepadVisualizationUserProfileSelect.appendChild(htmlGamepadVisualizationUserProfileSelectOption)
+    }
+    htmlGamepadVisualizationUserProfileSelect.addEventListener("change", () => {
+        const userProfile = getLocalStorageGamepadVisualizationUserProfile(visualizationProfile, htmlGamepadVisualizationUserProfileSelect.value)
+        globalGamepads.set(gamepad.index, Object.assign(globalGamepads.get(gamepad.index), { userProfile }))
+        const gamepadVisualizationProfiles = `gamepadVisualizationUserProfiles-${visualizationProfile.profileName}`
+        localStorage.setItem(gamepadVisualizationProfiles + "-lastUsed", userProfile.name)
+        updateGamepadListElements()
+    })
+    htmlLiElementGamepad.appendChild(htmlGamepadVisualizationUserProfileSelect)
+    htmlGamepadVisualizationUserProfileSelect.value = userProfile.name
+    htmlLiElementGamepad.appendChild(document.createElement("br"))
+    htmlLiElementGamepad.appendChild(document.createElement("br"))
+
+
 
     // TODO: Add select statement for supported visualization profiles which on click updates globalGamepads and renders all gamepadListElements again
     // TODO: Add select statement for profiles
@@ -318,6 +394,7 @@ function updateGamepadListElements() {
 }
 
 
+
 /**
  * @param {Gamepad} gamepad Gamepad to remove
  */
@@ -378,7 +455,12 @@ const addGamepad = (gamepad) => {
         }
     }
     // TODO: Fetch last user profile from localStorage
-    const userProfile = {}
+    const lastUseProfileOfVisualizationProfile = localStorage.getItem(`gamepadVisualizationUserProfiles-${visualizationProfile.profileName}-lastUsed`)
+    const existingUserProfile = getLocalStorageGamepadVisualizationUserProfile(visualizationProfile, lastUseProfileOfVisualizationProfile)
+    let userProfile = { name: "Default" }
+    if (existingUserProfile) {
+        userProfile = existingUserProfile
+    }
     globalGamepads.set(gamepad.index, { gamepad, visualizationProfile, userProfile })
 
     addGamepadListElement(gamepad, visualizationProfile, userProfile)
