@@ -29,7 +29,7 @@ Open the [`index.html`](index.html) file with your browser.
 
 ## TODO
 
-- Make default value visualization more beautiful
+Not important right now:
+
+- Make settings/options part look more modern
 - Allow a custom zoom scale (with a minimum width/height and where the maximum is the current canvas maximum width/height)
-- Allow the user to select possible supported visualization profiles
-  - Allow to save a profile and to select profiles (via web storage API)

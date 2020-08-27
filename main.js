@@ -192,6 +192,7 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
     const htmlLiElementGamepad = document.createElement("li")
     htmlLiElementGamepad.id = `controller-${gamepad.index}-${gamepad.id}`
 
+
     const htmlGamepadVisualizationProfile = document.createElement("p")
     htmlGamepadVisualizationProfile.appendChild(document.createTextNode("visualization profile: "))
     htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfile)
@@ -258,10 +259,6 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
     htmlLiElementGamepad.appendChild(document.createElement("br"))
     htmlLiElementGamepad.appendChild(document.createElement("br"))
 
-
-
-    // TODO: Add select statement for supported visualization profiles which on click updates globalGamepads and renders all gamepadListElements again
-    // TODO: Add select statement for profiles
 
     const lastUseProfileOfVisualizationProfile = localStorage.getItem(`gamepadVisualizationUserProfiles-${visualizationProfile.profileName}-lastUsed`)
     const existingUserProfile = getLocalStorageGamepadVisualizationUserProfile(visualizationProfile, userProfile.name ? userProfile.name : lastUseProfileOfVisualizationProfile)
@@ -437,8 +434,6 @@ const updateGamepadListElement = (gamepad) => {
  * @param {Gamepad} gamepad Gamepad to add
  */
 const addGamepad = (gamepad) => {
-    // TODO: Fetch last visualization profile from localStorage (possibly from user profile?)
-
     let visualizationProfile
     if (XBoxOne360ControllerChromium.gamepadIsSupported(gamepad)) {
         visualizationProfile = new XBoxOne360ControllerChromium()
@@ -454,7 +449,6 @@ const addGamepad = (gamepad) => {
             console.warn("No gamepad profile was found that could render the currently connected controller")
         }
     }
-    // TODO: Fetch last user profile from localStorage
     const lastUseProfileOfVisualizationProfile = localStorage.getItem(`gamepadVisualizationUserProfiles-${visualizationProfile.profileName}-lastUsed`)
     const existingUserProfile = getLocalStorageGamepadVisualizationUserProfile(visualizationProfile, lastUseProfileOfVisualizationProfile)
     let userProfile = { name: "Default" }
