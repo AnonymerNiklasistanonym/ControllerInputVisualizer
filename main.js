@@ -117,6 +117,27 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
                 break
         }
         globalGamepads.set(gamepad.index, Object.assign(globalGamepads.get(gamepad.index), { visualizationProfile }))
+        // Update user profile
+        const newUserProfile = UserProfileManager.getUserProfile(visualizationProfile, htmlGamepadVisualizationUserProfileSelect.value)
+        if (newUserProfile !== undefined) {
+            if (globalDebug) {
+                console.debug("A user profile was selected after virtualization has changed", { newUserProfile, gamepad, visualizationProfile })
+            }
+            globalGamepads.set(gamepad.index, Object.assign(globalGamepads.get(gamepad.index), { userProfile: newUserProfile }))
+            updateGamepadListElements()
+        } else {
+            const newDefaultUserProfile = UserProfileManager.getUserProfile(visualizationProfile)
+            if (newDefaultUserProfile !== undefined) {
+                if (globalDebug) {
+                    console.debug("A default user profile was selected after virtualization has changed", { newDefaultUserProfile, gamepad, visualizationProfile })
+                }
+                globalGamepads.set(gamepad.index, Object.assign(globalGamepads.get(gamepad.index), { userProfile: newDefaultUserProfile }))
+                updateGamepadListElements()
+            } else {
+                console.warn(`User profile or default was not found: "${htmlGamepadVisualizationUserProfileSelect.value}"`)
+            }
+        }
+
         updateGamepadListElements()
     })
     htmlLiElementGamepad.appendChild(htmlGamepadVisualizationProfileSelect)
@@ -160,6 +181,9 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
         const defaultUserProfile = UserProfileManager.getUserProfile(visualizationProfile)
         if (defaultUserProfile === undefined) {
             throw Error("No default user profile was found")
+        }
+        for (const key of Object.keys(defaultUserProfile)) {
+            delete userProfile[key]
         }
         for (const key of Object.keys(defaultUserProfile)) {
             userProfile[key] = defaultUserProfile[key]

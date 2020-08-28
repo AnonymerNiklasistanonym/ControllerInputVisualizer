@@ -9,6 +9,13 @@ const defaultControllerProfilesXBox = [{
 }]
 
 /**
+ * The default user profile if no default user profiles are available
+ */
+const defaultControllerProfile = {
+    profileName: "Default"
+}
+
+/**
  * Check if for an id there is already a value in the local storage.
  * If not return the default value and add an entry with this value.
  * If yes return the existing value instead of the default value.
@@ -63,7 +70,7 @@ class UserProfileManager {
             || gamepadVisualizationProfile.profileName === new XBoxOne360ControllerFirefox().profileName) {
             defaultProfileValue.push(...defaultControllerProfilesXBox)
         } else {
-            defaultProfileValue.push({ profileName: "Default " })
+            defaultProfileValue.push(defaultControllerProfile)
         }
         const idUserProfiles = this.getUserProfilesId(gamepadVisualizationProfile)
         /** @type {UserProfile[]} */
@@ -168,8 +175,11 @@ class UserProfileManager {
                 || gamepadVisualizationProfile.profileName === new XBoxOne360ControllerFirefox().profileName) {
                     userProfileName = defaultControllerProfilesXBox[0].profileName
             } else {
-                userProfileName = "Default"
+                userProfileName = defaultControllerProfile.profileName
             }
+        }
+        if (globalDebug) {
+            console.debug("getUserProfile", { gamepadVisualizationProfile, userProfileName, userProfiles })
         }
         if (userProfiles.length > 0) {
             // Otherwise check if profile already exists and if yes overwrite otherwise just add
