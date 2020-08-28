@@ -63,7 +63,7 @@ class GamepadVisualizationProfile {
 }
 
 /**
- * @typedef {{drawAlphaMask?: boolean, [key: string]: any}} GeneralDrawOptions
+ * @typedef {{drawAlphaMask?: boolean; [key: string]: any}} GeneralDrawOptions
  */
 
 
