@@ -2,6 +2,12 @@
 
 A simple webapp that visualizes the inputs of connected controllers using the JavaScript Gamepad API.
 
+It is a standalone application with no external script depedencies and thus works when run locally without any network connection.
+You can visualize one or multiple connected (currently only XBox) controller and customize the visualizations (colors, name) using custom profileswhich can be shared (exported) and imported as JSOn file.
+No cookies are used or any user data besides the configurations is tracked or saved.
+
+[You can checkout the website (just this repository running on a static webserver) on GitHub.](https://anonymerniklasistanonym.github.io/ControllerInputVisualizer)
+
 ## Links of features that are used by this project
 
 - `canvas`
