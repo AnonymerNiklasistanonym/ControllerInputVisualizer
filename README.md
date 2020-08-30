@@ -5,7 +5,7 @@ A simple webapp that visualizes the inputs of connected controllers using the Ja
 It is a standalone application with no external script depedencies and thus works when run locally without any network connection.
 You can visualize one or multiple connected (currently only XBox) controller and customize the visualizations (colors, name, ...) using custom profiles which can be shared (exported) and imported as JSON file.
 It is built to easily add other controller visualizations and mappings although currently only the XBox One and XBox 360 controller could be tested.
-No cookies are used and no user data besides the configurations that are saved (only locally on your device) is tracked or saved.
+No cookies are used and no user data besides the configurations (that are saved only locally on your device) is tracked or saved.
 
 [You can checkout the website (just this repository running on a static webserver) on GitHub.](https://anonymerniklasistanonym.github.io/ControllerInputVisualizer)
 
