@@ -36,6 +36,12 @@ let globalDebug = false
 let globalHideVerticalScrollbar = false
 
 /**
+ * Global variable for an uploaded user profile
+ * @type {UserProfile|undefined}
+ */
+let globalUploadedUserProfile = undefined
+
+/**
  * Save the time of the last rendered frame for time deltas between frames
  * (this is used to calculate the delta time between rendering frames)
  * @type {number}
@@ -118,11 +124,27 @@ const exportUserProfile = (gamepad) => {
 }
 
 /**
- * Upload/Import the user profile of a gamepad
+ * Upload/Import the user profile of a gamepad and select it as default
  * @param {Gamepad} gamepad
+ * @param {GamepadVisualizationProfile} visualizationProfile
+ * @param {UserProfile|undefined} uploadedUserProfile
  */
-const importUserProfile = (gamepad) => {
-
+const importUserProfile = (gamepad, visualizationProfile, uploadedUserProfile) => {
+    if (uploadedUserProfile !== undefined) {
+        UserProfileManager.addOrUpdateUserProfiles(visualizationProfile, uploadedUserProfile)
+        globalGamepads.get(gamepad.index).userProfile = UserProfileManager.getUserProfile(visualizationProfile, uploadedUserProfile.profileName)
+        if (globalGamepads.get(gamepad.index).userProfile === undefined) {
+            // If this is undefined reset to default
+            console.warn(`The uploaded user profile "${JSON.stringify(uploadedUserProfile)
+                }" was undefined via user profile manager and thus is reset to the default user profile`)
+            globalGamepads.get(gamepad.index).userProfile = UserProfileManager.getUserProfile(visualizationProfile)
+        }
+        globalForceRedraw = true
+        updateGamepadListElements()
+    } else {
+        console.warn(`The uploaded user profile was undefined for the visualization profile "${
+            visualizationProfile.profileName}"`)
+    }
 }
 
 
@@ -310,15 +332,49 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
         updateGamepadListElements()
     })
     htmlLiElementGamepad.appendChild(htmlResetVisualizationProfileOptions)
+    htmlLiElementGamepad.appendChild(document.createElement("br"))
 
-// Export visualization user profile
-const htmlExportVisualizationProfileOptions = document.createElement("input")
-htmlExportVisualizationProfileOptions.type = "button"
-htmlExportVisualizationProfileOptions.value = "Export user profile options"
-htmlExportVisualizationProfileOptions.addEventListener("click", () => {
-    exportUserProfile(gamepad)
-})
-htmlLiElementGamepad.appendChild(htmlExportVisualizationProfileOptions)
+    // Export visualization user profile
+    const htmlExportVisualizationProfileOptions = document.createElement("input")
+    htmlExportVisualizationProfileOptions.type = "button"
+    htmlExportVisualizationProfileOptions.value = "Export user profile options"
+    htmlExportVisualizationProfileOptions.addEventListener("click", () => {
+        exportUserProfile(gamepad)
+    })
+    htmlLiElementGamepad.appendChild(htmlExportVisualizationProfileOptions)
+    htmlLiElementGamepad.appendChild(document.createElement("br"))
+
+    // Import visualization user profile
+    const htmlImportVisualizationProfileOptions = document.createElement("input")
+    htmlImportVisualizationProfileOptions.type = "button"
+    htmlImportVisualizationProfileOptions.value = "Import user profile options from the following file:"
+    htmlImportVisualizationProfileOptions.addEventListener("click", () => {
+        importUserProfile(gamepad, globalGamepads.get(gamepad.index).visualizationProfile, globalUploadedUserProfile)
+    })
+    htmlLiElementGamepad.appendChild(htmlImportVisualizationProfileOptions)
+    const htmlImportVisualizationProfileOptionsFile = document.createElement("input")
+    htmlImportVisualizationProfileOptionsFile.type = "file"
+    htmlImportVisualizationProfileOptionsFile.accept = ".json"
+    htmlImportVisualizationProfileOptionsFile.addEventListener("change", () => {
+        globalUploadedUserProfile = undefined
+        const fileReader = new FileReader();
+        fileReader.onerror = () => {
+            console.warn("There was an error reading the selected user profile file")
+            globalUploadedUserProfile = undefined
+        }
+        fileReader.onload = () => {
+            try {
+                globalUploadedUserProfile = JSON.parse(fileReader.result.toString())
+            } catch (e) {
+                console.warn(`There was a problem reading the selected user profile file "${
+                    htmlImportVisualizationProfileOptionsFile.files[0].name}": ${e.message}`)
+                globalUploadedUserProfile = undefined
+            }
+        }
+        fileReader.readAsText(htmlImportVisualizationProfileOptionsFile.files[0])
+    })
+    htmlLiElementGamepad.appendChild(htmlImportVisualizationProfileOptionsFile)
+    htmlLiElementGamepad.appendChild(document.createElement("br"))
 
     const htmlGamepadTitle = document.createElement("p")
     htmlGamepadTitle.appendChild(document.createTextNode("name: " + gamepad.id))
@@ -838,6 +894,9 @@ const createOptionsInput = () => {
         console.log(`Update htmlInputToggleDebug to: "${htmlInputToggleDebug.checked}"`)
         // Clear all customized options
         localStorage.clear()
+        for (const [key, gamepadInfo] of globalGamepads.entries()) {
+            globalGamepads.get(key).userProfile = UserProfileManager.getUserProfile(gamepadInfo.visualizationProfile)
+        }
         // Set default options
         initializeGlobalOptions()
         // Force redraw of canvas

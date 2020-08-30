@@ -33,4 +33,3 @@ Not important right now:
 
 - Make settings/options part look more modern
 - Allow a custom zoom scale (with a minimum width/height and where the maximum is the current canvas maximum width/height)
-- Add import of exported user profiles
