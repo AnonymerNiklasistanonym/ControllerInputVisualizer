@@ -31,6 +31,11 @@ let globalForceRedraw = true
 let globalDebug = false
 
 /**
+ * Indicator for hiding the scroll bar
+ */
+let globalHideVerticalScrollbar = false
+
+/**
  * Save the time of the last rendered frame for time deltas between frames
  * (this is used to calculate the delta time between rendering frames)
  * @type {number}
@@ -68,7 +73,56 @@ const hexToRgba = (hex, alpha = undefined) => {
     if (alpha === undefined) {
         alpha = 1.0
     }
-    return "rgba(" + r + ", " + g + ", " + b + ", " + alpha + ")"
+    return `rgba(${r},${g},${b},${alpha})`
+}
+
+/**
+ * Stack Overflow solution to download a file with JS:
+ * https://stackoverflow.com/a/30800715
+ * @author {volzotan} https://stackoverflow.com/users/1472381/volzotan
+ * @author {bformet} https://stackoverflow.com/users/1189651/bformet
+ * @param {String} urlData
+ * @param {String} exportName
+ */
+const downloadDataUrl = (urlData, exportName) => {
+    const downloadAnchorNode = document.createElement("a")
+    downloadAnchorNode.setAttribute("href", urlData)
+    downloadAnchorNode.setAttribute("download", exportName)
+    document.body.appendChild(downloadAnchorNode) // required for firefox
+    downloadAnchorNode.click()
+    downloadAnchorNode.remove()
+}
+
+/**
+ * Download a text (JSON) file
+ * @param {*} exportObj
+ * @param {String} exportName
+ */
+const downloadObjectAsJson = (exportObj, exportName) => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 4))
+    downloadDataUrl(dataStr, `${exportName}.json`)
+}
+
+
+/**
+ * Download/Export the user profile of a gamepad
+ * @param {Gamepad} gamepad
+ */
+const exportUserProfile = (gamepad) => {
+    const gamepadInfo = globalGamepads.get(gamepad.index)
+    const gamepadId = gamepad.id
+    const visualizationProfile = gamepadInfo.visualizationProfile.profileName
+    const userProfile = Object.assign(gamepadInfo.userProfile, { gamepadId, visualizationProfile })
+    downloadObjectAsJson(userProfile, `${gamepadId.replace(/\s/g, "_")}-${visualizationProfile.replace(/\s/g, "_")}-${
+        userProfile.profileName ? userProfile.profileName : "Unknown"}`)
+}
+
+/**
+ * Upload/Import the user profile of a gamepad
+ * @param {Gamepad} gamepad
+ */
+const importUserProfile = (gamepad) => {
+
 }
 
 
@@ -256,6 +310,15 @@ const addGamepadListElement = (gamepad, visualizationProfile, userProfile) => {
         updateGamepadListElements()
     })
     htmlLiElementGamepad.appendChild(htmlResetVisualizationProfileOptions)
+
+// Export visualization user profile
+const htmlExportVisualizationProfileOptions = document.createElement("input")
+htmlExportVisualizationProfileOptions.type = "button"
+htmlExportVisualizationProfileOptions.value = "Export user profile options"
+htmlExportVisualizationProfileOptions.addEventListener("click", () => {
+    exportUserProfile(gamepad)
+})
+htmlLiElementGamepad.appendChild(htmlExportVisualizationProfileOptions)
 
     const htmlGamepadTitle = document.createElement("p")
     htmlGamepadTitle.appendChild(document.createTextNode("name: " + gamepad.id))
@@ -643,7 +706,7 @@ const initializeCanvas = () => {
     globalCtx.fillRect(0, 0, globalCtx.canvas.width, globalCtx.canvas.height)
 }
 
-window.addEventListener('resize', () => {
+window.addEventListener("resize", () => {
     if (globalCtx) {
         // Resize canvas if window is resized
         const dpi = window.devicePixelRatio
@@ -669,6 +732,28 @@ const initializeGlobalOptions = () => {
     })
 }
 
+
+/**
+ * Save a screenshot of the current canvas
+ * @param {string} fileName The file name
+ */
+const saveCanvasScreenshot = (fileName) => {
+    if (globalCtx) {
+        const dataURL = globalCtx.canvas.toDataURL("image/png");
+        downloadDataUrl(dataURL, fileName)
+    } else {
+        console.warn("Global canvas was null or undefined")
+    }
+}
+
+const toggleVerticalScrollBarVisibility = (hide = true) => {
+    if (hide) {
+        document.body.style.overflowY = 'hidden';
+    } else {
+        document.body.style.overflowY = 'visible';
+    }
+}
+
 const createOptionsInput = () => {
     // Set default options
     initializeGlobalOptions()
@@ -676,17 +761,17 @@ const createOptionsInput = () => {
     /** @type {HTMLInputElement} */
     // @ts-ignore
     const htmlInputSetBackgroundColor = document.getElementById("html-input-set-background-color")
-    const defaultValueBackgroundColor = localStorage.getItem('backgroundColor')
+    const defaultValueBackgroundColor = localStorage.getItem("backgroundColor")
     if (defaultValueBackgroundColor) {
         globalOptionBackgroundColor = defaultValueBackgroundColor
     } else {
-        localStorage.setItem('backgroundColor', globalOptionBackgroundColor)
+        localStorage.setItem("backgroundColor", globalOptionBackgroundColor)
     }
     htmlInputSetBackgroundColor.value = globalOptionBackgroundColor
     htmlInputSetBackgroundColor.addEventListener("change", () => {
-        console.log(`Update htmlInputBackgroundColor to: '${htmlInputSetBackgroundColor.value}'`)
+        console.log(`Update htmlInputBackgroundColor to: "${htmlInputSetBackgroundColor.value}"`)
         globalOptionBackgroundColor = htmlInputSetBackgroundColor.value
-        localStorage.setItem('backgroundColor', globalOptionBackgroundColor)
+        localStorage.setItem("backgroundColor", globalOptionBackgroundColor)
         // Force redraw of canvas
         globalForceRedraw = true
     })
@@ -694,17 +779,17 @@ const createOptionsInput = () => {
     /** @type {HTMLInputElement} */
     // @ts-ignore
     const htmlInputToggleMask = document.getElementById("html-input-toggle-mask")
-    const defaultValueDrawAlphaMask = localStorage.getItem('drawAlphaMask')
+    const defaultValueDrawAlphaMask = localStorage.getItem("drawAlphaMask")
     if (defaultValueDrawAlphaMask) {
         globalOptionDrawAlphaMask = defaultValueDrawAlphaMask === "true"
     } else {
-        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`)
+        localStorage.setItem("drawAlphaMask", `${globalOptionDrawAlphaMask}`)
     }
     htmlInputToggleMask.checked = globalOptionDrawAlphaMask
     htmlInputToggleMask.addEventListener("change", () => {
-        console.log(`Update htmlInputToggleMask to: '${htmlInputToggleMask.checked}'`)
+        console.log(`Update htmlInputToggleMask to: "${htmlInputToggleMask.checked}"`)
         globalOptionDrawAlphaMask = htmlInputToggleMask.checked
-        localStorage.setItem('drawAlphaMask', `${globalOptionDrawAlphaMask}`)
+        localStorage.setItem("drawAlphaMask", `${globalOptionDrawAlphaMask}`)
         // Force redraw of canvas
         globalForceRedraw = true
     })
@@ -712,17 +797,36 @@ const createOptionsInput = () => {
     /** @type {HTMLInputElement} */
     // @ts-ignore
     const htmlInputToggleDebug = document.getElementById("html-input-toggle-debug")
-    const defaultValueDebug = localStorage.getItem('debug')
+    const defaultValueDebug = localStorage.getItem("debug")
     if (defaultValueDebug) {
         globalDebug = defaultValueDebug === "true"
     } else {
-        localStorage.setItem('debug', `${globalDebug}`)
+        localStorage.setItem("debug", `${globalDebug}`)
     }
     htmlInputToggleDebug.checked = globalDebug
     htmlInputToggleDebug.addEventListener("change", () => {
-        console.log(`Update htmlInputToggleDebug to: '${htmlInputToggleDebug.checked}'`)
+        console.log(`Update htmlInputToggleDebug to: "${htmlInputToggleDebug.checked}"`)
         globalDebug = htmlInputToggleDebug.checked
-        localStorage.setItem('debug', `${globalDebug}`)
+        localStorage.setItem("debug", `${globalDebug}`)
+        // Force redraw of canvas
+        globalForceRedraw = true
+    })
+
+    /** @type {HTMLInputElement} */
+    // @ts-ignore
+    const htmlInputToggleHideVerticalScrollBar = document.getElementById("html-input-toggle-hide-vertical-scrollbar")
+    const defaultValueToggleHideVerticalScrollBar = localStorage.getItem("hide-vertical-scrollbar")
+    if (defaultValueToggleHideVerticalScrollBar) {
+        globalHideVerticalScrollbar = defaultValueToggleHideVerticalScrollBar === "true"
+    } else {
+        localStorage.setItem("hide-vertical-scrollbar", `${globalHideVerticalScrollbar}`)
+    }
+    htmlInputToggleHideVerticalScrollBar.checked = globalHideVerticalScrollbar
+    htmlInputToggleHideVerticalScrollBar.addEventListener("change", () => {
+        console.log(`Update htmlInputToggleHideScrollBar to: "${htmlInputToggleHideVerticalScrollBar.checked}"`)
+        globalHideVerticalScrollbar = htmlInputToggleHideVerticalScrollBar.checked
+        localStorage.setItem("hide-vertical-scrollbar", `${globalHideVerticalScrollbar}`)
+        toggleVerticalScrollBarVisibility(globalHideVerticalScrollbar)
         // Force redraw of canvas
         globalForceRedraw = true
     })
@@ -731,7 +835,7 @@ const createOptionsInput = () => {
     // @ts-ignore
     const htmlInputTriggerReset = document.getElementById("html-input-trigger-reset")
     htmlInputTriggerReset.addEventListener("click", () => {
-        console.log(`Update htmlInputToggleDebug to: '${htmlInputToggleDebug.checked}'`)
+        console.log(`Update htmlInputToggleDebug to: "${htmlInputToggleDebug.checked}"`)
         // Clear all customized options
         localStorage.clear()
         // Set default options
@@ -741,9 +845,18 @@ const createOptionsInput = () => {
         // Update HTML elements (because of select inputs and options)
         updateGamepadListElements()
     })
+
+    /** @type {HTMLInputElement} */
+    // @ts-ignore
+    const htmlInputTriggerScreenshot = document.getElementById("html-input-trigger-screenshot")
+    htmlInputTriggerScreenshot.addEventListener("click", () => {
+        const fileName = "controller_input_visualizer.png"
+        console.log(`Save screenshot as: "${htmlInputToggleDebug.checked}"`)
+        saveCanvasScreenshot(fileName)
+    })
 }
 
-window.addEventListener('load', () => {
+window.addEventListener("load", () => {
     // Wait until the page is fully loaded then
     initializeCanvas()
     createOptionsInput()
