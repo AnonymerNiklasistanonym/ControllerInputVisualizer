@@ -125,7 +125,7 @@ class DrawCollectionXBoxOne360Controller {
     }
     static infoButtonRbLb = Object.freeze({
         pathWidth: 127,
-        pathHeight: 26,
+        pathHeight: 25.5,
         pressHeight: 12,
         additionalHeight: 15
     })
@@ -387,7 +387,7 @@ class DrawCollectionXBoxOne360Controller {
             ctx.scale(-1, 1);
             ctx.translate(-this.infoButtonRbLb.pathWidth, 0)
         }
-        ctx.fill(new Path2D(`m ${this.infoButtonRbLb.pathWidth},26 0,-8.524568 C 113.3988,7.1608169 98.857572,0.88512457 83.125242,0.3078023 42.799301,2.3602042 20.279728,15.078099 0,26.458333 Z`))
+        ctx.fill(new Path2D(`m ${this.infoButtonRbLb.pathWidth},26 0,-8.524568 C 113.3988,7.1608169 98.857572,0.88512457 83.125242,0.3078023 42.799301,2.3602042 20.279728,15.078099 0,26 Z`))
         if (buttonType === "RB") {
             ctx.translate(this.infoButtonRbLb.pathWidth, 0)
             ctx.scale(-1, 1);
@@ -524,7 +524,7 @@ class DrawCollectionXBoxOne360Controller {
     static drawButtonABXY(ctx, x, y, name, color = "black", pressed = false, options = {}) {
         ctx.beginPath()
         ctx.arc(x, y, this.infoButtonABXY.radius * 2, 0, 2 * Math.PI);
-        ctx.fillStyle = color
+        ctx.fillStyle = options.drawAlphaMask === true ? "white" : color
         ctx.fill()
 
         ctx.beginPath()
